@@ -55,7 +55,86 @@
 
 .lang { color: var(--accent); border-color: rgba(63,214,43,.4); }
 .lang__caret { width: 14px; height: 14px; }
-.lang[aria-disabled="true"] { cursor: default; }
+/* ══ language menu ════════════════════════════════════════════ */
+
+.lang-wrap { position: relative; }
+
+.lang__caret { transition: transform 180ms var(--ease-out); }
+.lang[aria-expanded="true"] .lang__caret { transform: rotate(180deg); }
+
+/* Grows out of the button it hangs from, so it reads as coming from there
+   rather than appearing over the header. reset.css:27 forces [hidden] to
+   display:none !important, so display cannot be transitioned -- the open
+   state is a class, and js/i18n.js unhides one frame ahead of it. Same
+   two-step the registration card uses. */
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  min-width: 136px;
+  padding: 4px;
+  list-style: none;
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-brd);
+  background: rgba(11, 11, 13, .94);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .55);
+  transform-origin: top right;
+  opacity: 0;
+  transform: translateY(-6px) scale(.96);
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
+}
+
+/* Entry is slower than exit: arriving is worth watching, leaving is not. */
+.lang-menu.is-open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-duration: 180ms;
+}
+
+.lang-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px 9px 8px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+/* A drawn tick rather than U+2713: that codepoint is outside the latin
+   subset of the Montserrat cut, so the glyph would arrive from a fallback. */
+.lang-opt::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 5px;
+  height: 9px;
+  margin: -3px 3px 0;
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+
+.lang-opt[aria-selected="true"] { color: var(--accent); }
+.lang-opt[aria-selected="true"]::before { opacity: 1; }
+
+/* Arrow keys move focus through the list, so the focused option needs to be
+   visible even when the menu was opened by tapping. */
+.lang-opt:focus { background: rgba(255, 255, 255, .09); outline: none; }
+.lang-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .lang-opt:hover { background: rgba(255, 255, 255, .09); }
+}
 
 /* Same ring as .panel and .ball further down; the header buttons had none. */
 .hdr__logo:focus-visible,

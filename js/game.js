@@ -4,11 +4,6 @@
 (function () {
   'use strict';
 
-  var COPY = {
-    miss:  'So close! One more try',
-    goal:  'GOAL!'
-  };
-
   var stage, ball, keeper, msg, panels, anim;
   var attempt = 0;
   var busy = false;
@@ -211,7 +206,7 @@
           FSAudio.play('cheer', 0.7);
           stage.dataset.state = 'celebrate';
           celebrate(centre(panel));
-          say(COPY.goal, 1400);
+          say(FSI18n.t('msg.goal'), 1400);
           return wait(1500);
         })
         .then(function () {
@@ -229,7 +224,7 @@
         return rebound(state);
       })
       .then(function () {
-        say(COPY.miss, 1800);
+        say(FSI18n.t('msg.miss'), 1800);
         panel.classList.remove('is-armed');
         anim.reset();
         return resetBall();

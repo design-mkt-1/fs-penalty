@@ -22,6 +22,7 @@
     window.addEventListener('pointerdown', unlock, { once: false });
     window.addEventListener('keydown', unlock, { once: false });
 
+    FSI18n.init();
     FSForm.init();
     FSGame.init();
     FSStage.fit();

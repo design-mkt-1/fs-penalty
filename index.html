@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0b0d">
-<title>FanSport — Score the penalty and win!</title>
+<title data-i18n="title">FanSport — Score the penalty and win!</title>
 <link rel="stylesheet" href="css/reset.css">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/stage.css">
@@ -22,26 +22,36 @@
         <img src="assets/img/logo-fansport.svg" alt="FanSport" width="120" height="30">
       </a>
       <div class="hdr__right">
-        <button class="mute" type="button" aria-label="Toggle sound" aria-pressed="false">
+        <button class="mute" type="button" aria-pressed="false"
+                data-i18n-attr="aria-label:hdr.sound">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path class="mute__spk" d="M4 9v6h4l5 4V5L8 9H4z"/>
             <path class="mute__on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
             <path class="mute__off" d="M16.5 9.5l5 5m0-5l-5 5"/>
           </svg>
         </button>
-        <button class="lang" type="button" aria-label="Language: English" aria-disabled="true">
-          <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/>
-          </svg>
-          <span>EN</span>
-          <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6"/></svg>
-        </button>
+        <div class="lang-wrap">
+          <button class="lang" type="button" id="fs-lang-btn"
+                  aria-haspopup="listbox" aria-expanded="false"
+                  data-i18n-attr="aria-label:hdr.lang">
+            <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/>
+            </svg>
+            <span class="lang__code">EN</span>
+            <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6"/></svg>
+          </button>
+          <ul class="lang-menu" role="listbox" aria-labelledby="fs-lang-btn" hidden>
+            <li class="lang-opt" role="option" data-lang="uz" tabindex="-1"></li>
+            <li class="lang-opt" role="option" data-lang="ru" tabindex="-1"></li>
+            <li class="lang-opt" role="option" data-lang="en" tabindex="-1" aria-selected="true"></li>
+          </ul>
+        </div>
       </div>
     </header>
 
     <!-- ── call to action ─────────────────────────────────────── -->
     <div class="tagline">
-      <p class="tagline__text">Score the penalty<br>and win!</p>
+      <p class="tagline__text" data-i18n="tagline">Score the penalty<br>and win!</p>
     </div>
 
     <!-- ── pitch ──────────────────────────────────────────────── -->
@@ -51,7 +61,7 @@
       <div class="goal">
         <div class="goal__frame" role="presentation"></div>
 
-        <div class="panels" role="group" aria-label="Choose where to shoot">
+        <div class="panels" role="group" data-i18n-attr="aria-label:goal.aim">
           <button class="panel" type="button" data-cell="tl" data-mult="12"><span>×12</span></button>
           <button class="panel" type="button" data-cell="tc" data-mult="3"><span>×3</span></button>
           <button class="panel" type="button" data-cell="tr" data-mult="12"><span>×12</span></button>
@@ -66,7 +76,7 @@
 
     <!-- ── ball ───────────────────────────────────────────────── -->
     <div class="ball-zone">
-      <button class="ball" type="button" aria-label="Shoot at a random spot"></button>
+      <button class="ball" type="button" data-i18n-attr="aria-label:ball.shoot"></button>
     </div>
 
     <!-- ── celebration particles ──────────────────────────────── -->
@@ -86,27 +96,27 @@
           <header class="promo" id="promo-title">
             <div class="promo__row">
               <span class="promo__pct">200%</span>
-              <span class="promo__stack"><span>sport</span><span>bonus</span></span>
+              <span class="promo__stack"><span data-i18n="promo.sport">sport</span><span data-i18n="promo.bonus">bonus</span></span>
             </div>
             <!-- (AMOUNT) is a campaign placeholder, as in the source design. -->
-            <p class="promo__sub">or up to (AMOUNT) + 150 FS</p>
+            <p class="promo__sub" data-i18n="promo.sub">or up to (AMOUNT) + 150 FS</p>
           </header>
 
-          <div class="tabs" role="tablist" aria-label="Sign up with">
+          <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs.label">
             <button class="tab is-active" type="button" role="tab" data-tab="phone" aria-selected="true">
               <img class="tab__icon" src="assets/img/icons/phone.svg" alt="" width="16" height="16">
-              <span>PHONE</span>
+              <span data-i18n="tab.phone">PHONE</span>
             </button>
             <button class="tab" type="button" role="tab" data-tab="email" aria-selected="false">
               <img class="tab__icon" src="assets/img/icons/email.svg" alt="" width="16" height="16">
-              <span>EMAIL</span>
+              <span data-i18n="tab.email">EMAIL</span>
             </button>
           </div>
 
           <div class="fields">
             <div class="field" data-for="phone">
               <div class="row">
-                <button class="country" type="button" aria-label="Country code">
+                <button class="country" type="button" data-i18n-attr="aria-label:field.country">
                   <span class="country__flag">
                     <img src="assets/img/icons/flag-uz.png" alt="" width="26" height="20">
                   </span>
@@ -114,28 +124,28 @@
                 </button>
                 <div class="input">
                   <input id="fs-phone" type="tel" inputmode="tel" autocomplete="tel"
-                         placeholder="90 123 45 67" aria-describedby="fs-phone-err">
+                         data-i18n-attr="placeholder:field.phone" aria-describedby="fs-phone-err">
                 </div>
               </div>
-              <p class="err" id="fs-phone-err" hidden>Invalid phone number</p>
+              <p class="err" id="fs-phone-err" data-i18n="err.phone" hidden>Invalid phone number</p>
             </div>
 
             <div class="field" data-for="email" hidden>
               <div class="input">
                 <input id="fs-email" type="email" inputmode="email" autocomplete="email"
-                       placeholder="you@example.com" aria-describedby="fs-email-err">
+                       data-i18n-attr="placeholder:field.email" aria-describedby="fs-email-err">
               </div>
-              <p class="err" id="fs-email-err" hidden>Invalid email address</p>
+              <p class="err" id="fs-email-err" data-i18n="err.email" hidden>Invalid email address</p>
             </div>
 
             <div class="field">
-              <label class="label" for="fs-bonus">Select bonus</label>
+              <label class="label" for="fs-bonus" data-i18n="field.bonus">Select bonus</label>
               <div class="select">
                 <img class="select__icon" src="assets/img/icons/gift.svg" alt="" width="20" height="20">
                 <select id="fs-bonus">
-                  <option>Casino bonus</option>
-                  <option>Sport bonus</option>
-                  <option>No bonus</option>
+                  <option data-i18n="bonus.casino">Casino bonus</option>
+                  <option data-i18n="bonus.sport">Sport bonus</option>
+                  <option data-i18n="bonus.none">No bonus</option>
                 </select>
                 <img class="select__caret" src="assets/img/icons/chevron.svg" alt="" width="12" height="8">
               </div>
@@ -143,8 +153,8 @@
           </div>
 
           <div class="actions">
-            <button class="cta" type="submit">CONTINUE</button>
-            <p class="foot">Already have an account? <a href="#">Log in</a></p>
+            <button class="cta" type="submit" data-i18n="cta.continue">CONTINUE</button>
+            <p class="foot"><span data-i18n="foot.have">Already have an account?</span> <a href="#" data-i18n="foot.login">Log in</a></p>
           </div>
         </div>
 
@@ -153,15 +163,15 @@
             <circle cx="32" cy="32" r="27"/>
             <path d="M20 33.5L28.5 42L45 22"/>
           </svg>
-          <h2 class="done__title" id="done-title">Registration Successful!</h2>
-          <p class="done__sub">Your secure account has been created.</p>
+          <h2 class="done__title" id="done-title" data-i18n="done.title">Registration Successful!</h2>
+          <p class="done__sub" data-i18n="done.sub">Your secure account has been created.</p>
           <dl class="done__box">
-            <dt data-label="account">ACCOUNT EMAIL</dt>
+            <dt data-label="account" data-i18n="done.phone">ACCOUNT PHONE</dt>
             <dd class="done__id"></dd>
-            <dt>PASSWORD</dt>
+            <dt data-i18n="done.password">PASSWORD</dt>
             <dd class="done__pw">••••••••</dd>
           </dl>
-          <button class="cta" type="button" data-action="close">GO TO WEBSITE</button>
+          <button class="cta" type="button" data-action="close" data-i18n="cta.website">GO TO WEBSITE</button>
         </div>
 
       </form>
@@ -173,6 +183,7 @@
 <script src="js/stage.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/animator.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/game.js"></script>
 <script src="js/form.js"></script>
 <script src="js/main.js"></script>

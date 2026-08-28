@@ -131,6 +131,11 @@
   --fw-xbold: 800;
   --fw-black: 900;
 
+  /* ── Motion ─────────────────────────────────────── */
+  /* The curve already used by js/animator.js and the card in form.css,
+     given a name so new motion extends one system rather than forking. */
+  --ease-out: cubic-bezier(.2, .9, .3, 1);
+
   /* ── Radii / elevation ────────────────────────────────────── */
   --r-sm: 8px;
   --r-md: 12px;

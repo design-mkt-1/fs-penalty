@@ -74,8 +74,10 @@
     var value = validate();
     if (!value) return;
 
+    // Swap the key, not the text: a later language change re-renders from it.
     var label = stepDone.querySelector('dt[data-label="account"]');
-    label.textContent = mode === 'phone' ? 'ACCOUNT PHONE' : 'ACCOUNT EMAIL';
+    label.setAttribute('data-i18n', mode === 'phone' ? 'done.phone' : 'done.email');
+    FSI18n.apply(stepDone);
     stepDone.querySelector('.done__id').textContent =
       mode === 'phone' ? '+998 ' + value : value;
 
