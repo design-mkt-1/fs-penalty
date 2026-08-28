@@ -55,6 +55,15 @@ six panels stay interactive on both attempts; the chosen panel only selects
 which dive plays and where the ball flies. The attempt counter lives in memory,
 so a reload restarts the sequence.
 
+Tapping the **ball** is the "surprise me" shot: it picks one of the six panels
+at random and shoots there. It is a real `<button>`, so it is keyboard
+reachable and announced, and it runs through exactly the same scripted outcome.
+
+The goal is placed so the base of the posts lands at about stage y 485.
+Measured off `stadium.webp`, the advertising hoardings run down to stage y 428
+and the grass starts there — anything higher reads as standing on the stands
+rather than on the pitch. A contact shadow under the posts plants it.
+
 ## Animation
 
 There is no Spine runtime. Nano Banana Pro produces flat raster images, not

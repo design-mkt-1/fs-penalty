@@ -88,15 +88,34 @@
 
 /* ══ goal ═════════════════════════════════════════════════════ */
 
-/* 360 x 186 keeps the 900x466 goal artwork at its native aspect ratio. */
+/* 360 x 186 keeps the 900x466 goal artwork at its native aspect ratio.
+   Vertically it is placed so the base of the posts lands at about stage y 485.
+   Measured off stadium.webp, the advertising hoardings run to stage y 428 and
+   the grass starts there, so anything higher reads as standing on the stands
+   rather than on the pitch. */
 .goal {
   position: absolute;
   left: 50%;
-  top: 52%;
+  top: 46.5%;
   transform: translate(-50%, -50%);
   width: 360px;
   height: 186px;
   filter: drop-shadow(0 0 22px rgba(154,79,254,.30));
+}
+
+/* Contact shadow, so the posts sit in the grass instead of hovering over it. */
+.goal::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 104%;
+  height: 22px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.62), transparent 78%);
+  filter: blur(3px);
+  pointer-events: none;
 }
 
 .goal__frame {
@@ -138,13 +157,18 @@
   font-size: 20px;
   line-height: 1;
   letter-spacing: -.01em;
-  text-shadow: 0 2px 6px rgba(0,0,0,.6);
+  /* The two centre labels land on the keeper's kit, so the halo has to carry
+     them over neon green as well as over the net. */
+  text-shadow:
+    0 2px 6px rgba(0,0,0,.75),
+    0 0 14px rgba(0,0,0,.85),
+    0 0 3px rgba(0,0,0,.9);
   transform: translateY(-16px);   /* clear of the keeper's silhouette */
 }
 
 /* The keeper renders in front of the plates, so the two centre labels are
    pushed to the edges of their cells: above his head, and between his boots. */
-.panel[data-cell="bc"] span { transform: translateY(22px); }
+.panel[data-cell="bc"] span { transform: translateY(30px); }
 
 /* The two ×12 corners get the colored glass plate treatment. */
 .panel[data-mult="12"] {
@@ -175,7 +199,10 @@
 /* Panels stop responding while a shot is in flight. */
 #stage[data-state="shooting"] .panel,
 #stage[data-state="celebrate"] .panel,
-#stage[data-state="form"] .panel { pointer-events: none; }
+#stage[data-state="form"] .panel,
+#stage[data-state="shooting"] .ball,
+#stage[data-state="celebrate"] .ball,
+#stage[data-state="form"] .ball { pointer-events: none; }
 
 /* ══ goalkeeper ═══════════════════════════════════════════════ */
 
@@ -216,27 +243,43 @@
 
 /* ══ ball ═════════════════════════════════════════════════════ */
 
-.ball-zone { position: relative; flex: 0 0 148px; }
+.ball-zone { position: relative; flex: 0 0 170px; }
 
+/* Tapping the ball is the "surprise me" shot: game.js picks a panel at random.
+   It is a real button so it is reachable by keyboard and announced by screen
+   readers, unlike the six plates which are aimed deliberately. */
 .ball {
   position: absolute;
   z-index: 20;
   left: 50%;
-  top: 26px;
+  top: 36px;
   width: 96px;
   height: 96px;
   margin-left: -48px;
+  padding: 0;
   border-radius: 50%;
   will-change: transform;
   background: url("../assets/img/ball.webp") center / 100% 100% no-repeat;
   filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(63,214,43,.35));
+  transition: filter .18s ease;
+}
+
+@media (hover: hover) {
+  .ball:hover {
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 26px rgba(63,214,43,.75));
+  }
+}
+
+.ball:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
 .ball-zone::after {
   content: "";
   position: absolute;
   left: 50%;
-  top: 122px;
+  top: 132px;
   width: 84px;
   height: 14px;
   margin-left: -42px;
@@ -256,24 +299,25 @@
 
 /* ══ call to action ═══════════════════════════════════════════ */
 
+/* Sits directly under the header, over the night sky. */
 .tagline {
   position: relative;
+  z-index: 10;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  gap: 10px;
-  padding: 4px 20px 26px;
+  padding: 18px 20px 16px;
   text-align: center;
 }
 
-/* Scrim so the headline stays legible over the grass. */
+/* Scrim fading down into the sky, so the headline never fights the floodlights. */
 .tagline::before {
   content: "";
   position: absolute;
-  inset: -70px 0 0;
+  inset: 0 0 -34px;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent, rgba(4,4,6,.72) 55%, rgba(4,4,6,.92));
+  background: linear-gradient(180deg, rgba(4,4,6,.86), rgba(4,4,6,.55) 62%, transparent);
 }
 
 .tagline__text {

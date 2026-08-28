@@ -263,6 +263,13 @@
     panels.forEach(function (p) {
       p.addEventListener('click', function () { shoot(p); });
     });
+
+    // Tapping the ball shoots at a panel picked at random. The outcome is
+    // still decided by the attempt index, exactly as for a deliberate aim —
+    // the random pick only chooses which dive and trajectory play.
+    ball.addEventListener('click', function () {
+      shoot(panels[Math.floor(Math.random() * panels.length)]);
+    });
   }
 
   window.FSGame = { init: init, attempt: function () { return attempt; } };
