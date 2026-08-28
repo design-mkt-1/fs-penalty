@@ -65,6 +65,18 @@
     <div class="pitch">
       <div class="pitch__bg" role="presentation"></div>
 
+      <!-- Near-field pitch markings. The photo only carries the far end of
+           the ground, so a penalty taken here had no goal area, no spot and
+           no arc in front of it. These are drawn on a plane laid flat in 3D,
+           which means the browser does the perspective and it stays correct
+           at every screen size. See css/game.css. -->
+      <div class="pitch__lines" role="presentation">
+        <div class="turf">
+          <div class="turf__line turf__line--goal"></div>
+          <div class="turf__box turf__box--six"></div>
+        </div>
+      </div>
+
       <div class="goal">
         <div class="goal__frame" role="presentation"></div>
 

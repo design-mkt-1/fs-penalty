@@ -169,6 +169,14 @@
   overflow: hidden;
   /* cqw and cqh on .goal below mean "of the pitch" because of this. */
   container: pitch / size;
+
+  /* One goal width, the unit the whole composition is measured in. A real
+     goal is 7.32m, so every marking below is a plain multiple of it:
+     the goal area is 18.32/7.32 = 2.503 wide, the penalty spot sits
+     11/7.32 = 1.503 out, and so on. */
+  --gw: min(92cqw, 135cqh, 560px);
+  --goal-h: calc(var(--gw) * 466 / 900);
+  --goal-base: calc(46.5% + var(--goal-h) / 2);
 }
 
 /* The stadium plate covers the whole stage, not just the pitch row, so the
@@ -177,52 +185,132 @@
    It sits on a pseudo-element rather than on #stage itself for one reason:
    #stage is the container, so container units written in its own declarations
    would resolve against the viewport instead -- safe-area padding and all.
-   Inside ::before they mean what they say. */
+   Inside ::before they mean what they say.
+
+   Placed by landmark, not by percentage. stadium.webp is 781x1400 with its
+   grass starting .52 of the way down, and the drawn markings put the horizon
+   .403 goal-widths above the goal line, which works out at 40.5% of the stage
+   in every layout. So the photo's grass line is pinned to that same 40.5%,
+   and the two horizons agree instead of arguing.
+
+   The scale is max(124cqh, 179.3cqw), not cover: 179.3cqw is what covers the
+   width, and 124cqh is the smallest height that still leaves room to slide
+   the image up far enough to put the grass line at 40.5% while keeping the
+   bottom edge covered. In portrait that zooms in about a quarter and trims
+   the top of the floodlight towers, which the composition does not miss. */
 #stage::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   background-image: url("../assets/img/stadium.webp");
-  background-size: cover;
-  background-position: 50% 0;
+  background-repeat: no-repeat;
+  background-size: auto max(124cqh, 179.3cqw);
+  background-position-x: 50%;
+  background-position-y: calc(40.5cqh - max(64.5cqh, 93.2cqw));
   background-color: var(--ink-950);
 }
 
-/* stadium.webp is 781x1400 and its grass starts 52% of the way down.
-   Portrait is easy: the render is narrower than any phone, so cover fills the
-   height exactly, the grass lands at 52% of the stage, and position-y does
-   nothing at all. Wider than 781/1400 and cover starts scaling by width
-   instead -- the visible slice shrinks to a band, and at the old 34% that band
-   was floodlights and stands, which left the goal standing on concrete.
 
-   So place it by the landmark instead of by a percentage. Cover's scaled
-   height is 100cqw x 1400/781 = 179.3cqw, the grass line is .52 into that
-   (93.2cqw), and we want that line 40% down the stage. The clamp keeps the
-   image covering top and bottom near the crossover aspect, where the
-   arithmetic on its own would leave a strip uncovered.
-
-   This is a placement fix, not the perspective fix. The markings in the photo
-   still belong to a different point of view than the goal drawn over them;
-   that needs new artwork, or the lines drawn in SVG. */
-@container viewport (min-aspect-ratio: 781 / 1400) {
-  #stage::before {
-    background-position-y: clamp(
-      calc(100cqh - 179.3cqw),
-      calc(40cqh - 93.2cqw),
-      0px
-    );
-  }
-}
-
-/* Vignette that darkens the frame edges and keeps the goal the focal point. */
+/* Two jobs. The vignette darkens the frame edges and keeps the goal the focal
+   point. The band above it sinks the photo's own white lines, which belong to
+   the far end of the ground and were cutting straight through the near
+   markings drawn below -- and it doubles as aerial haze, since ground that
+   far away really does go flat and dark. It stops at the goal line, so
+   everything drawn in front of the goal stays crisp. */
 .pitch__bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
+    linear-gradient(180deg,
+      transparent 22%,
+      rgba(4,4,6,.78) 40%,
+      rgba(4,4,6,.78) calc(var(--goal-base) - 3%),
+      transparent var(--goal-base)),
     radial-gradient(120% 70% at 50% 46%, transparent 40%, rgba(4,4,6,.55) 100%);
 }
+
+/* ══ pitch markings ═══════════════════════════════════════════ */
+
+/* The photo only carries the far end of the ground -- its white lines are the
+   box 50-odd metres away -- so a penalty taken here had no goal area and no
+   spot in front of it, and the drawn goal read as floating over someone
+   else's markings.
+
+   These are drawn instead. They lie on a plane tipped flat with rotateX, so
+   the browser computes the perspective and it stays right at every size.
+
+   The numbers are not invented. Working back from the composition -- the goal
+   renders one goal-width across, its line sits .403 goal-widths below the
+   horizon -- puts the camera 17.1m out at 2.95m up, which is a focal length
+   of 2.34 goal-widths and a plane tipped 80.2 degrees. Everything else is a
+   real pitch measured in goals: the goal area is 18.32/7.32 = 2.503 wide by
+   5.5/7.32 = .751 deep, the penalty area is 40.32/7.32 = 5.508 across, and
+   the spot is 11/7.32 = 1.503 out. That model lands the spot exactly under
+   the ball, which is the check that it is right.
+
+   One honest cheat: the plane is squeezed to half width. This composition is
+   a telephoto one -- the goal fills the frame from 17m out, a 26 degree field
+   of view -- and at that focal length a true 18.32m goal area is two and a
+   half screens wide, so none of it would ever be seen. scaleX(.5) brings it
+   into frame while every proportion between the markings survives. The check
+   that the depth is still honest: the spot lands under the ball, within a
+   pixel, at every screen size.
+
+   The penalty area, its arc and its front edge are gone rather than squeezed.
+   Even halved they sit outside the frame, and from the spot you would not see
+   them anyway.
+
+   The penalty spot went too, for a different reason. The model puts it within
+   4px of the ball on a phone, which is what proved the depth was right -- but
+   the ball takes its position from the row it lives in, not from this plane,
+   so on a desktop the two drift 189px apart. A spot that far from the ball is
+   worse than no spot. */
+.pitch__lines {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  perspective: calc(var(--gw) * 2.34);
+  perspective-origin: 50% var(--goal-base);
+}
+
+/* Hinged along its far edge, which is the goal line. */
+.turf {
+  position: absolute;
+  left: 50%;
+  top: var(--goal-base);
+  width: calc(var(--gw) * 8);
+  height: calc(var(--gw) * 2);
+  margin-left: calc(var(--gw) * -4);
+  transform-origin: 50% 0%;
+  transform: rotateX(80.2deg) scaleX(.5);
+}
+
+.turf__line,
+.turf__box {
+  position: absolute;
+  border: 0 solid rgba(255, 255, 255, .42);
+}
+
+/* Runs wider than the frame, the way a goal line does. */
+.turf__line--goal {
+  left: 0;
+  top: 0;
+  width: 100%;
+  border-top-width: calc(var(--gw) * .016);   /* halved again by scaleX */
+}
+
+/* The goal area. No top edge -- the goal line already drew it. */
+.turf__box--six {
+  left: calc(50% - var(--gw) * 1.2515);
+  top: 0;
+  width: calc(var(--gw) * 2.503);
+  height: calc(var(--gw) * .751);
+  border-width: 0 calc(var(--gw) * .016) calc(var(--gw) * .016);
+}
+
 
 /* ══ goal ═════════════════════════════════════════════════════ */
 
@@ -236,7 +324,8 @@
   left: 50%;
   top: 46.5%;
   transform: translate(-50%, -50%);
-  width: min(92cqw, 135cqh, 560px);
+  z-index: 1;
+  width: var(--gw);
   aspect-ratio: 900 / 466;
   /* inline-size, not size: the labels and gaps below want cqw of the goal,
      and inline-size cannot fight the aspect-ratio that sets the height. */
