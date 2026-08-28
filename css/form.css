@@ -7,7 +7,7 @@
   --card-bg:   rgba(18,18,20,.5);
   --card-brd:  #3a3a3c;
   --field:     #2c2c2e;
-  --muted:     #8e8e93;
+  --muted:     #9a9aa0;   /* 5.0:1 on --field; #8e8e93 was 4.3:1 */
   --cta:       #30d158;
   --promo:     #3dd629;
   --cta-ink:   #0e0e0e;
@@ -186,7 +186,7 @@
   font-weight: 500;
 }
 
-.card .input input::placeholder { color: #6a6a6f; }
+.card .input input::placeholder { color: var(--muted); }
 
 .card .input:focus-within { border-color: var(--cta); }
 
@@ -312,3 +312,25 @@
 
 .card .done__box dd:last-child { border-bottom: 0; padding-bottom: 0; }
 .card .done__box dt + dd { margin-bottom: 6px; }
+
+/* ── focus ────────────────────────────────────────────────── */
+
+/* js/form.js focuses the card itself when it opens, so the whole panel must
+   not draw a ring. Everything you can actually Tab onto must. */
+.card:focus { outline: none; }
+
+.card .tab:focus-visible,
+.card .country:focus-visible,
+.card .cta:focus-visible,
+.card .foot a:focus-visible {
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+}
+
+/* The controls themselves clear the browser outline above, so the ring goes
+   on the box you can see instead of the invisible text node inside it. */
+.card .input:focus-within,
+.card .select:focus-within {
+  outline: 2px solid var(--cta);
+  outline-offset: 2px;
+}

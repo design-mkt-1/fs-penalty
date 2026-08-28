@@ -57,6 +57,14 @@
 .lang__caret { width: 14px; height: 14px; }
 .lang[aria-disabled="true"] { cursor: default; }
 
+/* Same ring as .panel and .ball further down; the header buttons had none. */
+.hdr__logo:focus-visible,
+.mute:focus-visible,
+.lang:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ══ pitch ════════════════════════════════════════════════════ */
 
 /* The pitch is the only elastic row: it absorbs whatever the fixed rows
