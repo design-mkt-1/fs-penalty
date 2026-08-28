@@ -1,206 +1,243 @@
-# FanSport penalty landing — debug session and remaining work
+# FanSport penalty landing — where this stands, and what is next
+
+## How to resume
+
+Open the repo on any machine and say **"start"**. That means: read this file
+and continue from *What is next* below. Everything above that section is
+context; everything in it is work.
+
+The file lives in the repo rather than in a scratch directory precisely so
+the work can be picked up from a different computer. It states its findings
+in full rather than assuming any of them are still in someone's head.
+
+The repo is public, so this stays to engineering facts. No credentials, no
+client contacts, no unreleased commercial terms.
 
 ## Context
 
-`D:\fs-penalty` is a finished, deployed mobile-first landing page: the visitor
-picks a target in the goal, the keeper saves the first attempt, the second
-always scores, and scoring opens the FanSport registration card.
+`D:\fs-penalty` is a deployed mobile-first landing page: the visitor picks a
+target in the goal, the keeper saves the first attempt, the second always
+scores, and scoring opens the FanSport registration card.
 
 * Live: **https://design-mkt-1.github.io/fs-penalty/**
 * Repo: `github.com/design-mkt-1/fs-penalty`, branch `main`, public
-* Deploy: `.github/workflows/pages.yml` publishes on every push to `main` and
-  uploads only `index.html`, `.nojekyll`, `css/`, `js/`, `assets/` — `raw/`
-  (~28 MB of source renders) stays in the repo but is never served.
-* Local dev: `python -m http.server 8000` in the project root, or the scratch
-  no-cache server used previously. Nothing to build.
+* Local dev: `python -m http.server 8000` in the project root. Nothing to build.
 
-This document covers a debugging pass over four defects found by testing the
-live site, plus the feature work that was deliberately deferred.
+---
 
-**How to resume:** open the repo on any machine and say *"read
-`docs/NEXT-SESSION.md` and continue"*. It lives in the repo rather than in a
-local scratch directory precisely so the work can be picked up from a different
-computer. It states its findings in full rather than assuming any of them are
-still in someone's head.
+## Two things only the repo owner can do
 
-The repo is public, so this file stays to engineering facts — defects,
-decisions, verification steps. No credentials, no client contacts, no
-unreleased commercial terms.
+### 1. The Pages source is wrong, and 28 MB leaks because of it
 
-### What a fresh session needs to know about the architecture
+**This is the one blocker.** Every push currently triggers *two* deployments
+that race each other:
 
-* Fixed **390 × 844** logical stage; `js/stage.js` scales it with a transform.
-  The page must never scroll — that is the hard requirement of the whole design.
-  `#stage` is a flex column where only `.pitch` is elastic.
-* `js/animator.js` exposes `play` / `setPose` / `preload` behind a
-  `CharacterAnimator` interface. There is no Spine runtime; poses are discrete
-  sprites. `WRONG_WAY` is **derived** from the panel grid — do not turn it back
-  into a hand-written table, that is what caused an earlier bug where the keeper
-  dived onto the ball.
-* `tools/cutout.py` rebuilds `assets/img/*.webp` from `raw/`. Only needed if the
-  artwork changes.
-* Outcome is decided by attempt index in `js/game.js`, never by the panel picked.
+| Workflow | What it publishes |
+|---|---|
+| `.github/workflows/pages.yml` (ours) | only `index.html`, `.nojekyll`, `css/`, `js/`, `assets/` |
+| `pages-build-deployment` (GitHub's built-in) | **the whole repo** |
 
-## Confirmed defects
+The built-in one is winning. Verified against the live URL on 2026-08-29:
 
-All four were reproduced against the live site, not inferred from reading.
+```
+raw/_raw-bg.png        200   6 219 457 bytes
+raw/_raw-ball.png      200   4 263 097 bytes
+docs/NEXT-SESSION.md   200
+tools/cutout.py        200
+```
 
-### 1. The page is dead after the registration card closes
+`Last-Modified` matches the most recent deploy, so this is the current
+publish, not a stale cache. All 28 MB of `raw/` is being served on every
+visit that touches it.
 
-`js/form.js` → `close()` hides the overlay but never clears
-`stage.dataset.state`, which stays `"form"`. The rule in `css/game.css` that
-disables input during a shot keeps `.panel` and `.ball` at
-`pointer-events: none` forever.
+**Fix:** GitHub → repo → Settings → Pages → *Build and deployment* →
+Source → **GitHub Actions**. That stops the built-in deployment and leaves
+only `pages.yml`. It is a repo setting, not code — no commit can fix it.
 
-Reproduced: after clicking `[data-action="close"]`, both computed styles were
-`none` and `document.activeElement` was `BODY`.
+Re-check afterwards: `curl -s -o /dev/null -w "%{http_code}"
+https://design-mkt-1.github.io/fs-penalty/raw/_raw-ball.png` must return
+**404**.
 
-### 2. The scripted sequence never resets
+### 2. Real-device testing
 
-`attempt` in `js/game.js` is only ever incremented and the condition is
-`attempt >= 2`. Reproduced: a third shot went straight to `celebrate` with no
-save. This matters because it is the trap waiting for anyone who fixes defect 1
-by simply clearing the state — the next shot would score instantly and re-open
-the form.
+Not a code change, but the acceptance gate. Chrome emulation covered twelve
+viewport sizes; a real phone covers what emulation cannot. iOS Safari and
+Android Chrome, over the live URL:
 
-### 3. The card claims to be a dialog but does not behave like one
+* Drag the page vertically — nothing moves, no rubber-band.
+* Open the card, focus a field, let the soft keyboard appear — the page
+  still does not scroll; the card scrolls inside itself if it must.
+* Rotate to landscape and back. Below 640px tall the layout goes
+  two-column: goal left, words and ball right.
+* A phone with a notch — check the `env(safe-area-inset-*)` padding.
+* Pinch zoom works and does not break the layout.
+* **The keeper's dive.** This is the one piece verified only numerically —
+  the test browser ran the page in a background tab, where timers are
+  throttled, so nobody has watched it at full speed yet. Is 540ms too slow?
+  Is the crouch readable or does it look like a stutter?
 
-`index.html` marks the card `role="dialog" aria-modal="true"`, yet focus is
-never moved into it on open, focus is not trapped, `Escape` does not close it,
-and focus is not returned to the trigger on close.
+---
 
-### 4. Dead argument
+## What a fresh session needs to know about the architecture
 
-`js/game.js` calls `FSForm.open(panel.dataset.mult)` but `open()` in
-`js/form.js` takes no parameter, so the multiplier the visitor won is
-discarded.
+* **The page must never scroll.** That is the hard requirement of the whole
+  design. `html, body { position: fixed; overflow: hidden }` in
+  `css/stage.css`. Every `focus()` call passes `preventScroll: true`.
+* **The stage is the viewport.** There used to be a fixed 390 × 844 canvas
+  scaled with a transform; it is gone. `#viewport` and `#stage` are query
+  containers, and everything sizes itself in `cqw` / `cqh`. Two shape
+  decisions — the landscape layout and the background placement — are
+  container queries on `#viewport`, not media queries, because safe-area
+  padding means the stage and the window are different boxes.
+* **`--gw` is the unit.** `min(92cqw, 135cqh, 560px)`, declared on `.pitch`.
+  The goal is one `--gw` wide and every pitch marking is a multiple of it.
+  `FSStage.unit()` is the JS half of the same idea: the rendered goal width
+  over the 360px the hand-tuned distances were written against.
+* **`js/animator.js` — do not turn `WRONG_WAY` back into a hand-written
+  table.** It is derived from the panel grid. The table it replaced sent the
+  keeper onto the ball for a goal into the bottom-centre panel. Keeper poses
+  are percentages of his own box, so a dive lands on the same panel at any
+  size.
+* **Outcome is decided by attempt index in `js/game.js`**, never by the panel
+  picked. `FSGame.reset()` puts both the stage state and the counter back.
+* **`js/i18n.js` holds every visible string.** Nothing user-facing lives in
+  the markup or in game.js/form.js any more. A fourth language is one more
+  object in `STRINGS` and nothing else.
+* **Type is self-hosted.** Six variable woff2 in `assets/fonts/`, one per
+  unicode subset. Nothing is fetched from Google at runtime, and an English
+  page pulls exactly one 37 kB file.
+* `tools/cutout.py` rebuilds `assets/img/*.webp` from `raw/`. Only needed if
+  the artwork changes.
 
-### Checked and found healthy
+---
 
-Sprite preloading works — all six keeper sprites appear in the Resource Timing
-entries on a cold load. Do not "fix" it.
+## What was done, 2026-08-28
 
-## Decisions taken
+Eight commits, all on `main` and live.
+
+| Commit | What |
+|---|---|
+| `3f1db1d` | The four defects: dead page after the card closed, sequence never reset, the card was a dialog in name only, dead argument |
+| `af15912` | Pinch zoom restored, focus rings on five controls that had none, two contrast failures fixed |
+| `2e0b730` | Self-hosted type; Alan Sans replaced by Montserrat |
+| `9cf7928` | Three locales UZ / RU / EN with a working language menu |
+| `3edee5f` | Flags in the language menu; a 16 kB PNG dropped |
+| `4cfbdb3` | Fluid layout; the goal put back on the grass |
+| `f54c686` | Near pitch markings drawn; the photo stopped arguing with them |
+| `503cfda` | Six sprites made to read as a real dive |
+
+Three findings worth keeping:
+
+* **Alan Sans has no Cyrillic.** Google Fonts serves it in latin, latin-ext
+  and arabic only, so the Russian locale would have had no glyphs at all.
+  That is why the display face is Montserrat now.
+* **The photo carries the wrong end of the pitch.** Measuring `stadium.webp`
+  (781 × 1400): the hoardings meet the grass 52% down, and the white lines at
+  56% and 59.5% are the box at the *other* end of the ground. Drawing a near
+  goal over them is what made the perspective read wrong. The near markings
+  are drawn now, on a plane tipped with `rotateX`.
+* **A WAAPI iteration easing composes on top of the per-keyframe ones.** With
+  a curve as strong as this project's, the whole dive was crushed into its
+  first fifth — every frame after 21% measured identical. The effect easing
+  is `linear` now and the shaping lives on the frames.
+
+### Decisions taken
 
 | Topic | Decision |
 |---|---|
-| "GO TO WEBSITE" button | `location.reload()` for now; IT will supply the real signup URL later |
+| "GO TO WEBSITE" button | `DESTINATION` seam in `js/form.js`; null reloads, a URL navigates. IT supplies the real signup URL later — one line |
 | Phone prefix | Uzbekistan `+998` only, single fixed prefix |
-| Language selector | Becomes functional: **UZ / RU / EN**, choice persisted |
-| Translations | Drafted here for UZ and RU, reviewed by the user before publishing |
+| Display face | Montserrat 900 everywhere, replacing Alan Sans |
+| Languages | UZ / RU / EN, persisted in `localStorage` under `fs-lang` |
+| Multiplier passed to the form | Dropped. `FSForm.open()` takes no argument |
+| Penalty spot, penalty area, arc | Not drawn. The area and arc fall outside a 26° frame; the spot cannot stay under the ball across layouts — 4px apart on a phone, 189px on a desktop |
 | Legal copy (18+, T&C, responsible gambling) | Added later by the client's IT team |
-| Meta description, Open Graph, favicon | **Out of scope** — not selected |
+| Meta description, Open Graph, favicon | Out of scope |
 
-## Work items
+---
 
-### A. Fix the four defects
+## What is next
 
-**`js/game.js`** — add a `reset()` to the public API that returns the stage to
-`idle`, sets `attempt` back to `0`, clears `busy`, restores the idle pose and
-re-shows the ball. Export it on `window.FSGame`.
+In order. Items A and B need the repo owner; C onward is code.
 
-**`js/form.js`** — `close()` must leave the page usable, not just hidden. Give
-it a completion callback, and have the "GO TO WEBSITE" handler call
-`location.reload()`. Keep the seam obvious and commented so swapping in the real
-URL is a one-line change:
+### A. Set the Pages source to GitHub Actions
 
-```js
-// IT will replace this with the real signup URL.
-var DESTINATION = null;   // e.g. 'https://fansport.example/signup?utm=penalty'
-```
+See *Two things only the repo owner can do* above. Everything else can
+proceed without it, but the site serves 28 MB it should not until it is done.
 
-When `DESTINATION` is null, reload; otherwise navigate. This makes the eventual
-handover mechanical.
+### B. Review the UZ and RU strings, and test on a real phone
 
-**`js/form.js`** — accept and use the multiplier: `open(mult)` stores it and the
-complete screen can show what was won. If the design has nowhere for it, keep
-the parameter but drop the call site's argument rather than leaving it dangling.
+The translations went live unreviewed, at the owner's call, to get a testable
+link out. They are in `js/i18n.js` — 33 keys per locale. The Uzbek follows the
+original Figma card, which was written in Uzbek, rather than translating the
+English back.
 
-**Focus management** in `js/form.js`: on open, remember `document.activeElement`,
-move focus to the first field; trap Tab within `.card`; close on `Escape`;
-restore focus on close. Guard against the page-scroll rule — use
-`preventScroll: true` when focusing.
+Worth a second look in particular:
 
-### B. Accessibility
+| Key | UZ | RU |
+|---|---|---|
+| `msg.miss` | Ozgina qoldi! Yana urinib koʻring | Так близко! Ещё попытка |
+| `promo.sub` | yoki (AMOUNT) gacha + 150 FS | или до (AMOUNT) + 150 FS |
+| `cta.website` | SAYTGA OʻTISH | ПЕРЕЙТИ НА САЙТ |
+| `foot.have` | Akkauntingiz bormi? | Уже есть аккаунт? |
 
-* `index.html` line 5 — drop `maximum-scale=1, user-scalable=no` from the
-  viewport meta. It blocks pinch zoom and fails WCAG 1.4.4. Verify afterwards
-  that zooming does not break the no-scroll rule; `#viewport` already clips with
-  `overflow: hidden`, so this should be safe, but it must be re-tested.
-* Check contrast of `.tagline__text` and the multiplier labels over the artwork.
-* Confirm every interactive element has a visible `:focus-visible` state —
-  `.panel` and `.ball` already do; `.tab`, `.country`, `.cta` need checking.
+### C. The goal panels — labels, hitmark, message box
 
-### C. Self-hosted fonts
+The multiplier labels are inside the panels but shoved clear of the keeper
+with `transform: translateY(-4.4cqw)` and `translateY(8.3cqw)`
+(`css/game.css`). It works, but it reads as the patch it is.
 
-Replace the Google Fonts link in `index.html` with local `woff2` files in
-`assets/fonts/`. Alan Sans and Roboto are both SIL Open Font License, so
-redistribution is fine — keep the license file alongside them.
+* Rework how ×2 / ×3 / ×12 sit in their panels so they do not need the nudge.
+* The hitmark exists — `.hit` in `css/game.css`, a ring at the strike point,
+  fired by `mark(panel)` in `js/game.js`. Check whether it reads at speed
+  and whether the two centre panels need something different, since the
+  keeper stands in front of them.
+* The message box `.msg` sits at `top: 30%` of the stage, floating over the
+  goal. Decide where it belongs now that the layout is fluid.
 
-Benefits: no third-party request on first paint, works offline, and removes the
-question of visitor IPs being sent to Google, which matters for an EU-facing
-operator.
+### D. The registration card against Figma
 
-Downloading the font binaries needs a go-ahead at execution time.
+File `mAJyDSaXdr9GO72b7FGvI8`, node `1:2823`, named in a comment in
+`index.html`. Pull it through the Figma MCP server and compare value by
+value rather than by eye. The card was built from that node but has drifted —
+and two of its colours changed for contrast (`--muted` is `#9a9aa0`, the
+placeholder now uses it too).
 
-### D. Three-language support
+### E. Feel-check and tune the dive
 
-New `js/i18n.js` plus a strings table. Keep it plain and dependency-free, in the
-style of the existing modules.
+Depends on B. The dive is five keyframes over 540ms in `js/animator.js`:
+coil at 21%, launch stretched at 58%, follow-through past the mark at 84%,
+settle at 100%. The sprite swaps on the launch frame, 113ms in. If it reads
+slow or stuttery on a real screen, `duration` and the `LAUNCH` constant are
+the two dials.
 
-* Mark translatable nodes with `data-i18n="key"` in `index.html`; the module
-  walks them on language change.
-* Strings: tagline, miss message, `GOAL!`, the promo header, tab labels, field
-  placeholders, validation errors, `Select bonus` options, CTA, footer auth
-  line, and the complete screen.
-* Persist to `localStorage`, mirror onto `document.documentElement.lang`.
-* Wire the header selector — it currently renders but does nothing, and its
-  markup lists six languages. Trim it to UZ / RU / EN.
-* Uzbek is written in Latin script for this market, so no RTL work is needed.
-* The registration card in Figma was originally written in Uzbek — reuse that
-  wording for the UZ locale rather than translating the English back.
-
-Draft UZ and RU, then have the user review before publishing.
-
-### E. Real-device testing
-
-Not a code change but the acceptance gate. iOS Safari and Android Chrome, over
-the live URL:
-
-* Drag the page vertically — nothing moves, no rubber-band.
-* Open the card, focus a field, let the soft keyboard appear — the page still
-  does not scroll, the card scrolls internally if it must.
-* Rotate to landscape and back.
-* A phone with a notch — check `env(safe-area-inset-*)` padding.
-* Pinch zoom now works and does not break the layout.
-
-## Files to touch
-
-```
-index.html          viewport meta, font links, data-i18n hooks, language list
-js/form.js          close/reset seam, focus management, open(mult)
-js/game.js          reset(), export it
-js/i18n.js          new
-css/form.css        focus-visible states if missing
-assets/fonts/       new: Alan Sans + Roboto woff2 + OFL license
-```
+---
 
 ## Verification
 
-1. Serve locally and run the full flow: miss, message, second shot, goal,
+Serve locally with `python -m http.server 8000`, then:
+
+1. **The full flow** — shoot, keeper saves, message, shoot again, goal,
    confetti, card, submit, complete screen.
-2. **Defect 1 and 2** — after the complete screen, confirm the page is usable
-   again and that the sequence starts from the beginning: the next shot must be
+2. **The page is still alive afterwards.** Press GO TO WEBSITE: the page
+   reloads and plays. Then the no-reload path: open the card, press
+   **Escape** — `getComputedStyle(document.querySelector('.panel')).pointerEvents`
+   must be `"auto"` and `FSGame.attempt()` must be `0`. The next shot must be
    a save, not a goal.
-3. **Defect 3** — with the card open: Tab cycles inside the card only, Escape
-   closes it, focus returns to where it was.
-4. **No-scroll** — assert `stage.scrollHeight === stage.clientHeight` and the
-   same for `document.documentElement`, in every state: idle, after miss, card
-   open, field focused, complete screen, after close.
-5. **Languages** — switch UZ / RU / EN, confirm every visible string changes,
-   reload and confirm the choice survives, confirm no layout overflows at the
-   longest translation.
-6. **Fonts** — Network tab shows no request to `fonts.googleapis.com` or
-   `fonts.gstatic.com`, and the page renders in Alan Sans, not a fallback.
-7. Push to `main` and confirm the Actions run turns green and the live URL
-   serves the change; `raw/` must still return 404.
+3. **The card behaves like a dialog** — Tab cycles inside it only, Escape
+   closes, focus returns to where it was.
+4. **Nothing scrolls, in every state** (idle, after a miss, card open, field
+   focused, complete screen, after close):
+   `document.documentElement.scrollHeight === clientHeight`.
+5. **Fluid** — across viewports from 320 × 568 to 1920 × 1200 plus landscape:
+   the goal fits inside the pitch, the ball fits inside its zone, and the
+   ball lands 0.00px from the panel centre (the flight translates in real
+   pixels now, so this is exact by construction).
+6. **Languages** — switch UZ / RU / EN; every visible string changes,
+   including the ones that come from JS. Reload: the choice survives.
+   `document.documentElement.lang` follows. Russian, the longest, does not
+   overflow any button.
+7. **Fonts** — `performance.getEntriesByType('resource')` shows zero entries
+   matching `fonts.googleapis|gstatic`, and one woff2 on first paint.
+8. **After pushing** — the Actions run is green, the live URL serves the
+   change, and `raw/` returns **404**. It does not today; see item A.
