@@ -1,10 +1,25 @@
 /* Registration card behaviour. Client-side only: no request is ever sent.
-   Tab switch, per-tab validation, then the "Complete" state from the design. */
+   Tab switch, per-tab validation, then the "Complete" state from the design.
+
+   The card claims role="dialog" aria-modal="true" in the markup, so it has to
+   behave like one: focus moves in on open, Tab stays inside, Escape closes,
+   and focus goes back where it came from. */
 (function () {
   'use strict';
 
+  /* IT will replace this with the real signup URL. While it is null the
+     "GO TO WEBSITE" button reloads the page, which is the safe stand-in.
+     Pointing it at the real destination is a one-line change. */
+  var DESTINATION = null;   // e.g. 'https://fansport.example/signup?utm=penalty'
+
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
+                  'select:not([disabled]),textarea:not([disabled]),' +
+                  '[tabindex]:not([tabindex="-1"])';
+
   var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput;
   var mode = 'phone';
+  var lastFocus = null;
+  var closing = false;
 
   function field(name) {
     return card.querySelector('.field[data-for="' + name + '"]');
@@ -66,9 +81,53 @@
 
     stepForm.hidden = true;
     stepDone.hidden = false;
+    // #promo-title lives inside the step just hidden, so the dialog would be
+    // left naming an element nobody can reach. Move the name with the step.
+    card.setAttribute('aria-labelledby', 'done-title');
     card.scrollTop = 0;
     FSAudio.play('whistle', 0.5);
   }
+
+  /* ── focus containment ────────────────────────────────────── */
+
+  /* Only what is genuinely on screen: the email field is hidden while the
+     phone tab is active, and one of the two steps is always hidden. */
+  function focusables() {
+    return Array.prototype.filter.call(
+      card.querySelectorAll(FOCUSABLE),
+      function (el) { return el.getClientRects().length > 0; }
+    );
+  }
+
+  /* Every focus() call passes preventScroll: the page must never scroll, and
+     the browser's default scroll-into-view would break that on its own. */
+  function onKeydown(ev) {
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      close();
+      return;
+    }
+    if (ev.key !== 'Tab') return;
+
+    var list = focusables();
+    if (!list.length) return;
+
+    var first = list[0];
+    var last = list[list.length - 1];
+
+    if (!card.contains(document.activeElement)) {
+      ev.preventDefault();
+      (ev.shiftKey ? last : first).focus({ preventScroll: true });
+    } else if (ev.shiftKey && document.activeElement === first) {
+      ev.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!ev.shiftKey && document.activeElement === last) {
+      ev.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  /* ── open / close ─────────────────────────────────────────── */
 
   /* Matches the fallback in game.js: a hidden tab never fires rAF, and the
      card must not be left mounted at opacity 0. */
@@ -78,18 +137,68 @@
   }
 
   function open() {
+    if (!sheet.hidden) return;
+    lastFocus = document.activeElement;
+    closing = false;
+
     sheet.hidden = false;
     sheet.setAttribute('aria-hidden', 'false');
-    nextFrame(function () { sheet.classList.add('is-open'); });
+    document.addEventListener('keydown', onKeydown, true);
+
+    nextFrame(function () {
+      sheet.classList.add('is-open');
+      // The card itself, not the first field: on a phone, focusing a text
+      // input pops the soft keyboard the instant the goal is scored.
+      card.focus({ preventScroll: true });
+    });
   }
 
-  function close() {
+  /* onDone runs once the card is fully gone. "GO TO WEBSITE" passes the
+     navigation; Escape passes nothing and simply hands the pitch back. */
+  function close(onDone) {
+    if (closing || sheet.hidden) return;
+    closing = true;
+
     sheet.classList.remove('is-open');
+    document.removeEventListener('keydown', onKeydown, true);
+
     setTimeout(function () {
       sheet.hidden = true;
       sheet.setAttribute('aria-hidden', 'true');
+      closing = false;
+      restore();
+
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      lastFocus = null;
+
+      // The stage still carries data-state="form", which holds .panel and
+      // .ball at pointer-events:none, and the attempt counter is still past
+      // the end of the scripted sequence. Hand both back to the game, or the
+      // page stays dead behind a card nobody can see.
+      if (window.FSGame && FSGame.reset) FSGame.reset();
+
+      if (typeof onDone === 'function') onDone();
     }, 280);
   }
+
+  /* Back to the opening state, so a second visit does not start on the
+     success screen with the previous answer still sitting in the field. */
+  function restore() {
+    stepDone.hidden = true;
+    stepForm.hidden = false;
+    card.setAttribute('aria-labelledby', 'promo-title');
+    phoneInput.value = '';
+    emailInput.value = '';
+    setTab('phone');
+    card.scrollTop = 0;
+  }
+
+  function go() {
+    if (DESTINATION) window.location.assign(DESTINATION);
+    else window.location.reload();
+  }
+
+  /* ── boot ─────────────────────────────────────────────────── */
 
   function init() {
     sheet    = document.querySelector('.sheet');
@@ -112,7 +221,8 @@
 
     card.addEventListener('submit', submit);
 
-    card.querySelector('[data-action="close"]').addEventListener('click', close);
+    card.querySelector('[data-action="close"]')
+        .addEventListener('click', function () { close(go); });
 
     // The soft keyboard changes the usable height; re-fit the stage around it.
     card.addEventListener('focusin', function () { FSStage.fit(); });

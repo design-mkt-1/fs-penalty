@@ -218,7 +218,7 @@
           panel.classList.remove('is-armed');
           stage.dataset.state = 'form';
           busy = false;
-          window.FSForm.open(panel.dataset.mult);
+          window.FSForm.open();
         });
       return;
     }
@@ -242,6 +242,28 @@
 
   function wait(ms) {
     return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  /* ── back to the start ────────────────────────────────────── */
+
+  /* Called when the registration card closes. The stage is still carrying
+     data-state="form", which holds .panel and .ball at pointer-events:none
+     (css/game.css), and `attempt` is still past the end of the scripted
+     sequence — so without this the page is dead, and clearing only the state
+     would make the next shot score instantly. Both have to be undone together. */
+  function reset() {
+    clearTimeout(msgTimer);
+    msg.classList.remove('is-visible');
+    msg.hidden = true;
+
+    panels.forEach(function (p) { p.classList.remove('is-armed'); });
+
+    attempt = 0;
+    busy = false;
+
+    anim.reset();
+    stage.dataset.state = 'idle';
+    return resetBall();
   }
 
   /* ── boot ─────────────────────────────────────────────────── */
@@ -272,5 +294,9 @@
     });
   }
 
-  window.FSGame = { init: init, attempt: function () { return attempt; } };
+  window.FSGame = {
+    init: init,
+    reset: reset,
+    attempt: function () { return attempt; }
+  };
 })();
