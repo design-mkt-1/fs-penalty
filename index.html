@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0b0d">
+<title>FanSport — Score the penalty and win!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@600;700;800;900&family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/form.css">
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage" data-state="idle">
+
+    <!-- ── header ─────────────────────────────────────────────── -->
+    <header class="hdr">
+      <a class="hdr__logo" href="#" aria-label="FanSport">
+        <img src="assets/img/logo-fansport.svg" alt="FanSport" width="120" height="30">
+      </a>
+      <div class="hdr__right">
+        <button class="mute" type="button" aria-label="Toggle sound" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path class="mute__spk" d="M4 9v6h4l5 4V5L8 9H4z"/>
+            <path class="mute__on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
+            <path class="mute__off" d="M16.5 9.5l5 5m0-5l-5 5"/>
+          </svg>
+        </button>
+        <button class="lang" type="button" aria-label="Language: English" aria-disabled="true">
+          <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/>
+          </svg>
+          <span>EN</span>
+          <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── pitch ──────────────────────────────────────────────── -->
+    <div class="pitch">
+      <div class="pitch__bg" role="presentation"></div>
+
+      <div class="goal">
+        <div class="goal__frame" role="presentation"></div>
+
+        <div class="panels" role="group" aria-label="Choose where to shoot">
+          <button class="panel" type="button" data-cell="tl" data-mult="12"><span>×12</span></button>
+          <button class="panel" type="button" data-cell="tc" data-mult="3"><span>×3</span></button>
+          <button class="panel" type="button" data-cell="tr" data-mult="12"><span>×12</span></button>
+          <button class="panel" type="button" data-cell="bl" data-mult="2"><span>×2</span></button>
+          <button class="panel" type="button" data-cell="bc" data-mult="3"><span>×3</span></button>
+          <button class="panel" type="button" data-cell="br" data-mult="2"><span>×2</span></button>
+        </div>
+
+        <div class="keeper" data-pose="idle" role="presentation"></div>
+      </div>
+    </div>
+
+    <!-- ── ball ───────────────────────────────────────────────── -->
+    <div class="ball-zone">
+      <div class="ball" role="presentation"></div>
+    </div>
+
+    <!-- ── call to action ─────────────────────────────────────── -->
+    <div class="tagline">
+      <p class="tagline__text">Score the penalty<br>and win!</p>
+    </div>
+
+    <!-- ── celebration particles ──────────────────────────────── -->
+    <canvas class="burst" width="390" height="844" aria-hidden="true"></canvas>
+
+    <!-- ── transient message ──────────────────────────────────── -->
+    <p class="msg" role="status" aria-live="polite" hidden></p>
+
+    <!-- ── registration overlay ───────────────────────────────── -->
+    <!-- Figma mAJyDSaXdr9GO72b7FGvI8 · Registration Card 1:2823
+         Device=Mobile, Tab=Phone/Email, State=Default/Error/Complete, with offer -->
+    <div class="sheet" hidden aria-hidden="true">
+      <form class="card" role="dialog" aria-modal="true" aria-labelledby="promo-title" novalidate>
+
+        <div class="card__step" data-step="form">
+          <header class="promo" id="promo-title">
+            <div class="promo__row">
+              <span class="promo__pct">200%</span>
+              <span class="promo__stack"><span>sport</span><span>bonus</span></span>
+            </div>
+            <!-- (AMOUNT) is a campaign placeholder, as in the source design. -->
+            <p class="promo__sub">or up to (AMOUNT) + 150 FS</p>
+          </header>
+
+          <div class="tabs" role="tablist" aria-label="Sign up with">
+            <button class="tab is-active" type="button" role="tab" data-tab="phone" aria-selected="true">
+              <img class="tab__icon" src="assets/img/icons/phone.svg" alt="" width="16" height="16">
+              <span>PHONE</span>
+            </button>
+            <button class="tab" type="button" role="tab" data-tab="email" aria-selected="false">
+              <img class="tab__icon" src="assets/img/icons/email.svg" alt="" width="16" height="16">
+              <span>EMAIL</span>
+            </button>
+          </div>
+
+          <div class="fields">
+            <div class="field" data-for="phone">
+              <div class="row">
+                <button class="country" type="button" aria-label="Country code">
+                  <span class="country__flag">
+                    <img src="assets/img/icons/flag-uz.png" alt="" width="26" height="20">
+                  </span>
+                  <img class="country__caret" src="assets/img/icons/chevron-sm.svg" alt="" width="10" height="6">
+                </button>
+                <div class="input">
+                  <input id="fs-phone" type="tel" inputmode="tel" autocomplete="tel"
+                         placeholder="90 123 45 67" aria-describedby="fs-phone-err">
+                </div>
+              </div>
+              <p class="err" id="fs-phone-err" hidden>Invalid phone number</p>
+            </div>
+
+            <div class="field" data-for="email" hidden>
+              <div class="input">
+                <input id="fs-email" type="email" inputmode="email" autocomplete="email"
+                       placeholder="you@example.com" aria-describedby="fs-email-err">
+              </div>
+              <p class="err" id="fs-email-err" hidden>Invalid email address</p>
+            </div>
+
+            <div class="field">
+              <label class="label" for="fs-bonus">Select bonus</label>
+              <div class="select">
+                <img class="select__icon" src="assets/img/icons/gift.svg" alt="" width="20" height="20">
+                <select id="fs-bonus">
+                  <option>Casino bonus</option>
+                  <option>Sport bonus</option>
+                  <option>No bonus</option>
+                </select>
+                <img class="select__caret" src="assets/img/icons/chevron.svg" alt="" width="12" height="8">
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="cta" type="submit">CONTINUE</button>
+            <p class="foot">Already have an account? <a href="#">Log in</a></p>
+          </div>
+        </div>
+
+        <div class="card__step" data-step="done" hidden>
+          <svg class="done__tick" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <circle cx="32" cy="32" r="27"/>
+            <path d="M20 33.5L28.5 42L45 22"/>
+          </svg>
+          <h2 class="done__title">Registration Successful!</h2>
+          <p class="done__sub">Your secure account has been created.</p>
+          <dl class="done__box">
+            <dt data-label="account">ACCOUNT EMAIL</dt>
+            <dd class="done__id"></dd>
+            <dt>PASSWORD</dt>
+            <dd class="done__pw">••••••••</dd>
+          </dl>
+          <button class="cta" type="button" data-action="close">GO TO WEBSITE</button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/stage.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/animator.js"></script>
+<script src="js/game.js"></script>
+<script src="js/form.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

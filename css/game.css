@@ -1,0 +1,329 @@
+/* ══ header ═══════════════════════════════════════════════════ */
+
+.hdr {
+  position: relative;
+  z-index: 40;
+  flex: 0 0 var(--hdr-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 14px;
+  background: rgba(11,11,13,.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.hdr__logo img { height: 26px; width: auto; }
+
+.hdr__right { display: flex; align-items: center; gap: 8px; }
+
+.mute,
+.lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.05);
+  color: var(--text);
+  font-weight: var(--fw-bold);
+  font-size: 13px;
+  letter-spacing: .02em;
+}
+
+.mute { width: 32px; padding: 0; justify-content: center; }
+
+.mute svg,
+.lang svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mute .mute__spk { fill: currentColor; stroke: none; }
+.mute .mute__off { display: none; }
+.mute[aria-pressed="true"] .mute__on { display: none; }
+.mute[aria-pressed="true"] .mute__off { display: block; }
+
+.lang { color: var(--accent); border-color: rgba(63,214,43,.4); }
+.lang__caret { width: 14px; height: 14px; }
+.lang[aria-disabled="true"] { cursor: default; }
+
+/* ══ pitch ════════════════════════════════════════════════════ */
+
+/* The pitch is the only elastic row: it absorbs whatever the fixed rows
+   below leave over, so the stage total is always exactly 844. */
+.pitch {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The stadium plate covers the whole stage, not just the pitch row, so the
+   ball and the tagline sit on grass rather than on a black band. */
+#stage {
+  background-image: url("../assets/img/stadium.webp");
+  background-size: cover;
+  background-position: 50% 34%;
+  background-color: var(--ink-950);
+}
+
+/* Vignette that darkens the frame edges and keeps the goal the focal point. */
+.pitch__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 50% 46%, transparent 40%, rgba(4,4,6,.55) 100%);
+}
+
+/* ══ goal ═════════════════════════════════════════════════════ */
+
+/* 360 x 186 keeps the 900x466 goal artwork at its native aspect ratio. */
+.goal {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  height: 186px;
+  filter: drop-shadow(0 0 22px rgba(154,79,254,.30));
+}
+
+.goal__frame {
+  position: absolute;
+  inset: 0;
+  background: url("../assets/img/goal.webp") center / 100% 100% no-repeat;
+}
+
+/* ══ multiplier panels — brandbook "glass plate" ══════════════ */
+
+/* Insets measured off goal.webp: the posts occupy the outer 3.3% on each side,
+   the crossbar the top 5.2%, and the net base the bottom 10.1%. */
+.panels {
+  position: absolute;
+  inset: 5.2% 3.3% 10.1%;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 6px;
+  padding: 6px;
+}
+
+.panel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  border: 1px solid var(--glass-brd);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 2px 10px rgba(0,0,0,.28) inset;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.panel span {
+  font-weight: var(--fw-black);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: -.01em;
+  text-shadow: 0 2px 6px rgba(0,0,0,.6);
+  transform: translateY(-16px);   /* clear of the keeper's silhouette */
+}
+
+/* The keeper renders in front of the plates, so the two centre labels are
+   pushed to the edges of their cells: above his head, and between his boots. */
+.panel[data-cell="bc"] span { transform: translateY(22px); }
+
+/* The two ×12 corners get the colored glass plate treatment. */
+.panel[data-mult="12"] {
+  border-color: var(--glass-purple-brd);
+  background: var(--glass-purple-bg);
+}
+.panel[data-mult="12"] span { color: var(--purple-200); }
+
+@media (hover: hover) {
+  .panel:hover {
+    border-color: var(--accent);
+    box-shadow: var(--glow-green), 0 2px 10px rgba(0,0,0,.28) inset;
+  }
+}
+
+.panel:active { transform: scale(.97); }
+
+.panel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.panel.is-armed {
+  border-color: var(--accent);
+  box-shadow: var(--glow-green);
+}
+
+/* Panels stop responding while a shot is in flight. */
+#stage[data-state="shooting"] .panel,
+#stage[data-state="celebrate"] .panel,
+#stage[data-state="form"] .panel { pointer-events: none; }
+
+/* ══ goalkeeper ═══════════════════════════════════════════════ */
+
+/* Every pose sprite shares one 429x640 canvas and one camera, so the element
+   is a fixed box and changing pose only swaps the background image. The idle
+   figure fills 80% of that canvas, which puts it at ~132px on stage. */
+.keeper {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: -13px;
+  width: 110px;
+  height: 164px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  will-change: transform;
+  background: center / 100% 100% no-repeat;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,.55));
+}
+
+.keeper[data-pose="idle"]             { background-image: url("../assets/img/keeper-idle.webp"); }
+.keeper[data-pose="jump_L1"]          { background-image: url("../assets/img/keeper-jump_L1.webp"); }
+.keeper[data-pose="jump_L2"]          { background-image: url("../assets/img/keeper-jump_L2.webp"); }
+.keeper[data-pose="jump_R1"]          { background-image: url("../assets/img/keeper-jump_R1.webp"); }
+.keeper[data-pose="jump_R2"]          { background-image: url("../assets/img/keeper-jump_R2.webp"); }
+.keeper[data-pose="jump_center"]      { background-image: url("../assets/img/keeper-jump_center.webp"); }
+.keeper[data-pose="jump_center_down"] { background-image: url("../assets/img/keeper-idle.webp"); }
+
+/* Idle breathing. The class is removed while a dive plays, so the scripted
+   animation in animator.js is never fighting these keyframes. */
+.keeper.is-idling { animation: keeper-idle 2.4s ease-in-out infinite; }
+
+@keyframes keeper-idle {
+  0%, 100% { transform: translateX(-50%) translateY(0)    scaleY(1);    }
+  50%      { transform: translateX(-50%) translateY(-3px) scaleY(1.015); }
+}
+
+/* ══ ball ═════════════════════════════════════════════════════ */
+
+.ball-zone { position: relative; flex: 0 0 148px; }
+
+.ball {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 26px;
+  width: 96px;
+  height: 96px;
+  margin-left: -48px;
+  border-radius: 50%;
+  will-change: transform;
+  background: url("../assets/img/ball.webp") center / 100% 100% no-repeat;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(63,214,43,.35));
+}
+
+.ball-zone::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 122px;
+  width: 84px;
+  height: 14px;
+  margin-left: -42px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent);
+  filter: blur(2px);
+}
+
+/* A nudge that reads as "tap a panel". Class-gated so the scripted flight
+   in game.js is never fighting these keyframes. */
+.ball.is-bobbing { animation: ball-bob 2s ease-in-out infinite; }
+
+@keyframes ball-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* ══ call to action ═══════════════════════════════════════════ */
+
+.tagline {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 4px 20px 26px;
+  text-align: center;
+}
+
+/* Scrim so the headline stays legible over the grass. */
+.tagline::before {
+  content: "";
+  position: absolute;
+  inset: -70px 0 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(4,4,6,.72) 55%, rgba(4,4,6,.92));
+}
+
+.tagline__text {
+  font-weight: var(--fw-black);
+  font-size: 27px;
+  line-height: 1.06;
+  letter-spacing: -.01em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 40%, var(--green-300));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(63,214,43,.30));
+}
+
+/* ══ celebration particles ════════════════════════════════════ */
+
+.burst {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+.burst.is-live { opacity: 1; }
+
+/* ══ transient message ════════════════════════════════════════ */
+
+.msg {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%) scale(.9);
+  padding: 12px 22px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-brd);
+  background: var(--glass-purple-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glow-purple);
+  font-weight: var(--fw-xbold);
+  font-size: 17px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity .25s ease, transform .25s ease;
+}
+
+.msg.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }

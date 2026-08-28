@@ -1,0 +1,314 @@
+/* Registration card — Figma mAJyDSaXdr9GO72b7FGvI8, node 1:2823.
+   Values below are the design's own. They stay card-scoped rather than being
+   promoted into tokens.css, because the product card runs a slightly
+   different green and Roboto rather than the brandbook Alan Sans. */
+
+.card {
+  --card-bg:   rgba(18,18,20,.5);
+  --card-brd:  #3a3a3c;
+  --field:     #2c2c2e;
+  --muted:     #8e8e93;
+  --cta:       #30d158;
+  --promo:     #3dd629;
+  --cta-ink:   #0e0e0e;
+  --foot:      #aeaeb2;
+  --err:       #ff453a;
+}
+
+/* ── overlay ──────────────────────────────────────────────── */
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px 12px;
+  background: rgba(4,4,6,.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity .28s ease;
+}
+
+.sheet.is-open { opacity: 1; }
+
+/* ── card shell ───────────────────────────────────────────── */
+
+.card {
+  width: 365px;
+  max-width: 100%;
+  max-height: 100%;
+  /* The page never scrolls; if the soft keyboard squeezes the stage the
+     card scrolls inside itself instead. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 0 16px;
+  border: 1px solid var(--card-brd);
+  border-radius: 24px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: "Roboto", system-ui, -apple-system, sans-serif;
+  transform: translateY(14px) scale(.98);
+  transition: transform .3s cubic-bezier(.2,.9,.3,1);
+}
+
+.sheet.is-open .card { transform: none; }
+
+.card .card__step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 12px 16px;
+}
+
+/* ── promo header ─────────────────────────────────────────── */
+
+.card .promo { text-align: center; text-transform: uppercase; }
+
+.card .promo__row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+}
+
+.card .promo__pct { font-size: 76px; line-height: 1.05; letter-spacing: -.02em; }
+
+.card .promo__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 30px;
+  line-height: 1;
+  text-align: left;
+}
+
+.card .promo__sub {
+  margin-top: 4px;
+  color: var(--promo);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* ── segmented tabs ───────────────────────────────────────── */
+
+.card .tabs {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .tab {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card .tab__icon { width: 16px; height: 16px; opacity: .85; }
+
+.card .tab.is-active { background: var(--cta); color: #000; }
+.card .tab.is-active .tab__icon { filter: brightness(0); opacity: 1; }
+
+/* ── fields ───────────────────────────────────────────────── */
+
+.card .fields { display: flex; flex-direction: column; gap: 12px; }
+
+.card .field { display: flex; flex-direction: column; gap: 8px; }
+
+.card .row { display: flex; gap: 8px; align-items: stretch; }
+
+.card .label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.card .country {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .country__flag {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.card .country__flag img { width: 26px; height: 20px; object-fit: cover; }
+.card .country__caret { width: 10px; height: 6px; }
+
+.card .input {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--field);
+  transition: border-color .18s ease;
+}
+
+.card .input input {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.card .input input::placeholder { color: #6a6a6f; }
+
+.card .input:focus-within { border-color: var(--cta); }
+
+.card .field.is-invalid .input { border-color: var(--err); }
+
+.card .err {
+  color: var(--err);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.card .select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .select__icon { width: 20px; height: 20px; }
+.card .select__caret { width: 12px; height: 8px; }
+
+.card .select select {
+  flex: 1 0 0;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.card .select select option { background: var(--field); color: #fff; }
+
+/* ── actions ──────────────────────────────────────────────── */
+
+.card .actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.card .cta {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--cta);
+  color: var(--cta-ink);
+  font-size: 18px;
+  font-weight: 700;
+  transition: filter .16s ease, transform .16s ease;
+}
+
+.card .cta:active { transform: scale(.985); }
+.card .cta:hover { filter: brightness(1.06); }
+
+.card .cta:disabled,
+.card .cta[aria-disabled="true"] {
+  background: #17351f;
+  color: #5b6a5f;
+  cursor: default;
+  filter: none;
+}
+
+.card .foot {
+  padding: 8px 0;
+  color: var(--foot);
+  font-size: 15px;
+  text-align: center;
+}
+
+.card .foot a { color: var(--foot); text-decoration: underline; }
+
+/* ── complete state ───────────────────────────────────────── */
+
+.card .card__step[data-step="done"] { align-items: stretch; text-align: center; gap: 14px; }
+
+.card .done__tick {
+  width: 64px;
+  height: 64px;
+  margin: 8px auto 0;
+  fill: none;
+  stroke: var(--cta);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.card .done__title { font-size: 24px; font-weight: 700; color: #fff; }
+.card .done__sub { font-size: 15px; color: var(--foot); }
+
+.card .done__box {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--field);
+  text-align: left;
+}
+
+.card .done__box dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.card .done__box dd {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.card .done__box dd:last-child { border-bottom: 0; padding-bottom: 0; }
+.card .done__box dt + dd { margin-bottom: 6px; }

@@ -1,0 +1,83 @@
+/* FanSport design tokens — sourced from the brandbook
+   Figma mAJyDSaXdr9GO72b7FGvI8, sections "Logo variations" and "Brandbook" */
+
+:root {
+  /* ── Primary: Green Goblin ────────────────────────────────── */
+  --green-50:  #ecfce9;
+  --green-100: #d5f9ce;
+  --green-200: #aff3a3;
+  --green-300: #7ce96d;
+  --green-400: #3fd62b;   /* FS Color/Accent Green */
+  --green-500: #31c022;
+  --green-600: #219917;
+  --green-700: #1c7516;
+  --green-800: #1b5d17;
+  --green-900: #1a4f18;
+  --green-950: #082b08;
+
+  /* ── Secondary: Purple Lavander ───────────────────────────── */
+  --purple-50:  #f9f5ff;
+  --purple-100: #f1e7ff;
+  --purple-200: #e5d3ff;
+  --purple-300: #d1b1ff;
+  --purple-400: #b57fff;
+  --purple-500: #9a4ffe;
+  --purple-600: #822bf2;
+  --purple-700: #6f1bd5;
+  --purple-800: #601bae;
+  --purple-900: #4f178c;
+  --purple-950: #330368;
+
+  /* ── Neutrals ─────────────────────────────────────────────── */
+  --ink-000: #ffffff;
+  --ink-100: #d6d6d8;
+  --ink-200: #a3a3a8;
+  --ink-300: #79797f;
+  --ink-600: #2a2a2e;
+  --ink-700: #1e1e21;
+  --ink-800: #161618;
+  --ink-900: #0b0b0d;
+  --ink-950: #050506;
+
+  /* ── Semantic ─────────────────────────────────────────────── */
+  --accent:        var(--green-400);
+  --accent-press:  var(--green-500);
+  --accent-ink:    var(--ink-950);
+  --surface:       var(--ink-800);
+  --surface-raised:var(--ink-700);
+  --surface-field: var(--ink-600);
+  --text:          var(--ink-000);
+  --text-muted:    var(--ink-200);
+  --danger:        #ff4d4d;
+
+  /* Glass plate, brandbook guideline 011 */
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.03));
+  --glass-brd: rgba(255,255,255,.22);
+  --glass-blur: 10px;
+
+  /* Colored glass plate (purple) */
+  --glass-purple-bg: linear-gradient(160deg, rgba(154,79,254,.34), rgba(80,20,150,.16));
+  --glass-purple-brd: rgba(181,127,255,.42);
+
+  /* ── Type ─────────────────────────────────────────────────── */
+  --font: "Alan Sans", "Arial Narrow", system-ui, -apple-system, sans-serif;
+  --fw-semi: 600;
+  --fw-bold: 700;
+  --fw-xbold: 800;
+  --fw-black: 900;
+
+  /* ── Radii / elevation ────────────────────────────────────── */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  --glow-green: 0 0 24px rgba(63,214,43,.45);
+  --glow-purple: 0 0 28px rgba(154,79,254,.45);
+
+  /* ── Stage geometry (see stage.css / stage.js) ────────────── */
+  --stage-w: 390px;
+  --stage-h: 844px;
+  --hdr-h: 54px;
+}

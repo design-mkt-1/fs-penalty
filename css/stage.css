@@ -1,0 +1,62 @@
+/* Fixed-viewport, zero-scroll shell.
+   The stage is a fixed 390x844 logical canvas; stage.js scales it to fit.
+   Nothing inside the stage depends on the real viewport size. */
+
+html, body {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--ink-950);
+  color: var(--text);
+  font-family: var(--font);
+  touch-action: manipulation;
+}
+
+#viewport {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding:
+    env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Extended backdrop behind the centred frame on wide screens.
+   Same artwork as the stage background, blown up and blurred. */
+#viewport::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(154,79,254,.22), transparent 60%),
+    radial-gradient(90% 70% at 50% 100%, rgba(63,214,43,.16), transparent 65%),
+    var(--ink-950);
+  filter: blur(18px);
+  z-index: 0;
+}
+
+#stage {
+  position: relative;
+  z-index: 1;
+  width: var(--stage-w);
+  height: var(--stage-h);
+  flex: 0 0 auto;
+  transform: scale(var(--fit, 1));
+  transform-origin: center center;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ink-900);
+  border-radius: var(--r-xl);
+  box-shadow: 0 24px 80px rgba(0,0,0,.7);
+  isolation: isolate;
+}
+
+/* On a phone the frame fills the screen, so drop the rounding and shadow. */
+@media (max-width: 480px) {
+  #stage { border-radius: 0; box-shadow: none; }
+  #viewport::before { display: none; }
+}
