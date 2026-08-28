@@ -11,162 +11,23 @@
 
   /* ── geometry helpers ─────────────────────────────────────── */
 
-  function unit() {
-    return FSStage.unit();
-  }
-
   function centre(el) {
     var r = el.getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
   }
 
-  /* requestAnimationFrame never fires while the tab is hidden, which would
-     otherwise wedge the state machine mid-shot if the visitor switches apps.
-     Fall back to a timer so every tween still runs to completion. */
-  function tick(cb) {
-    if (document.hidden) return setTimeout(function () { cb(performance.now()); }, 16);
-    return requestAnimationFrame(cb);
-  }
+  /* Which way the ball comes off the glove. A keeper diving to his left
+     pushes it further left; a save down the middle is parried back at the
+     taker, so it barely travels sideways. */
+  var SAVE_SIDE = { tl: -1, bl: -1, tc: 0.45, bc: -0.45, tr: 1, br: 1 };
 
-  /* ── ball flight ──────────────────────────────────────────── */
+  /* How far along the flight the ball meets the glove. It stops in front of
+     the line, not on it, because the keeper's hands are in front of the net. */
+  var SAVE_AT = 0.88;
 
-  function flight(target, opts) {
-    var k = unit();
-    var from = centre(ball);
-    var to = centre(target);
-    var dx = to.x - from.x;
-    var dy = to.y - from.y;
-    var lift = 34 * k;
-    var spin = dx >= 0 ? 620 : -620;
-    var duration = opts.duration || 620;
-    var stopAt = opts.stopAt || 1;
-
-    ball.classList.remove('is-bobbing');
-
-    return new Promise(function (resolve) {
-      var t0 = performance.now();
-
-      (function step(now) {
-        var t = Math.min((now - t0) / duration, stopAt);
-        var ease = t * t * (3 - 2 * t);          // smoothstep
-        var x = dx * ease;
-        var y = dy * ease - lift * Math.sin(Math.PI * ease);
-        var s = 1 - 0.70 * ease;
-        var r = spin * ease;
-
-        ball.style.transform =
-          'translate(' + x + 'px,' + y + 'px) scale(' + s + ') rotate(' + r + 'deg)';
-
-        if (t < stopAt) tick(step);
-        else resolve({ x: x, y: y, scale: s, rot: r });
-      })(performance.now());
-    });
-  }
-
-  function rebound(state) {
-    var k = unit();
-    var dir = state.x >= 0 ? 1 : -1;
-    var toX = state.x + dir * 96 * k;
-    var toY = state.y + 150 * k;
-    var duration = 420;
-
-    return new Promise(function (resolve) {
-      var t0 = performance.now();
-      (function step(now) {
-        var t = Math.min((now - t0) / duration, 1);
-        var e = 1 - Math.pow(1 - t, 2);
-        var x = state.x + (toX - state.x) * e;
-        var y = state.y + (toY - state.y) * e;
-        var s = state.scale + (0.62 - state.scale) * e;
-        var r = state.rot - 340 * e * dir;
-
-        ball.style.transform =
-          'translate(' + x + 'px,' + y + 'px) scale(' + s + ') rotate(' + r + 'deg)';
-        ball.style.opacity = String(1 - 0.85 * e);
-
-        if (t < 1) tick(step);
-        else resolve();
-      })(performance.now());
-    });
-  }
-
-  function resetBall() {
-    return new Promise(function (resolve) {
-      ball.style.transition = 'none';
-      ball.style.transform = 'translate(0,0) scale(1) rotate(0deg)';
-      ball.style.opacity = '0';
-      tick(function () {
-        ball.style.transition = 'opacity .3s ease';
-        ball.style.opacity = '1';
-        setTimeout(function () {
-          ball.style.transition = '';
-          ball.classList.add('is-bobbing');
-          resolve();
-        }, 300);
-      });
-    });
-  }
-
-  /* ── celebration particles ────────────────────────────────── */
-
-  var BURST_COLOURS = ['#3fd62b', '#7ce96d', '#9a4ffe', '#d1b1ff', '#ffffff'];
-
-  function celebrate(origin) {
-    var canvas = document.querySelector('.burst');
-    var ctx = canvas.getContext('2d');
-    var stageRect = stage.getBoundingClientRect();
-    var w = stageRect.width, h = stageRect.height;
-    var k = unit();
-    var ox = origin.x - stageRect.left;
-    var oy = origin.y - stageRect.top;
-
-    var bits = [];
-    for (var i = 0; i < 110; i++) {
-      var angle = Math.PI * (0.08 + 0.84 * (i / 110)) + Math.PI;   // fan upward
-      var speed = (3.4 + (i % 7) * 0.85) * k;
-      bits.push({
-        x: ox, y: oy,
-        vx: Math.cos(angle) * speed * (0.7 + (i % 5) * 0.14),
-        vy: Math.sin(angle) * speed,
-        size: (4 + (i % 4) * 2.2) * k,
-        spin: (i % 2 ? 1 : -1) * (0.1 + (i % 3) * 0.06),
-        rot: i,
-        colour: BURST_COLOURS[i % BURST_COLOURS.length]
-      });
-    }
-
-    canvas.classList.add('is-live');
-    var t0 = performance.now();
-    var life = 1700;
-
-    (function frame(now) {
-      var elapsed = now - t0;
-      ctx.clearRect(0, 0, w, h);
-
-      for (var i = 0; i < bits.length; i++) {
-        var b = bits[i];
-        b.vy += 0.16 * k;         // gravity
-        b.vx *= 0.992;
-        b.x += b.vx;
-        b.y += b.vy;
-        b.rot += b.spin;
-
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, 1 - elapsed / life);
-        ctx.translate(b.x, b.y);
-        ctx.rotate(b.rot);
-        ctx.fillStyle = b.colour;
-        ctx.fillRect(-b.size / 2, -b.size / 2, b.size, b.size * 0.6);
-        ctx.restore();
-      }
-
-      if (elapsed < life) tick(frame);
-      else {
-        ctx.clearRect(0, 0, w, h);
-        canvas.classList.remove('is-live');
-      }
-    })(performance.now());
-  }
+  /* The keeper commits before the ball arrives, as he would in a real
+     penalty: he is reading the run-up, not the flight. */
+  var DIVE_DELAY = 90;
 
   /* ── impact ─────────────────────────────────────── */
 
@@ -197,7 +58,7 @@
     clearTimeout(msgTimer);
     msg.textContent = text;
     msg.hidden = false;
-    tick(function () { msg.classList.add('is-visible'); });
+    FSFx.next(function () { msg.classList.add('is-visible'); });
     msgTimer = setTimeout(function () {
       msg.classList.remove('is-visible');
       setTimeout(function () { msg.hidden = true; }, 260);
@@ -213,29 +74,35 @@
 
     var cell = panel.dataset.cell;
     var scores = attempt >= 2;
+    var T = FSAnimator.TIMING;
 
     stage.dataset.state = 'shooting';
     panel.classList.add('is-armed');
     FSAudio.play('kick', 0.9);
 
-    // The keeper commits early, as he would in a real penalty.
     var dive = scores ? FSAnimator.WRONG_WAY[cell] : FSAnimator.COVERS[cell];
-    setTimeout(function () { anim.play(dive); }, 90);
+    setTimeout(function () { anim.play(dive); }, DIVE_DELAY);
 
-    // He meets the ground on the follow-through frame of that dive, 84% of
-    // its 540ms. The plume is the landing a still sprite cannot show.
+    // He meets the ground on the landing frame of that dive, and the plume is
+    // the impact a still sprite cannot show. Both numbers are read from
+    // FSAnimator.TIMING rather than restated: they used to be spelled out
+    // here as `90 + 540 * 0.84`, so retuning the dive desynced the dust.
     setTimeout(function () {
       fx(dust, { '--dust-x': anim.landing(dive) });
-    }, 90 + 540 * 0.84);
+      FSFx.shake(220, 2.6);
+    }, DIVE_DELAY + T.duration * T.land);
 
     if (scores) {
-      flight(panel, { duration: 640 })
-        .then(function () {
+      FSFx.shoot(ball, panel, { duration: 640 })
+        .then(function (state) {
           mark(panel);
           FSAudio.play('net', 0.8);
           FSAudio.play('cheer', 0.7);
+          FSFx.netBulge(state.x, state.y, state.r * state.s);
+          FSFx.shake(320, 5);
+          FSFx.intoNet(state);
           stage.dataset.state = 'celebrate';
-          celebrate(centre(panel));
+          FSFx.burst(centre(panel));
           say(FSI18n.t('msg.goal'), 1400);
           return wait(1500);
         })
@@ -248,17 +115,18 @@
       return;
     }
 
-    flight(panel, { duration: 620, stopAt: 0.82 })
+    FSFx.shoot(ball, panel, { duration: 620, stopAt: SAVE_AT })
       .then(function (state) {
         mark(panel);
         FSAudio.play('save', 0.9);
-        return rebound(state);
+        FSFx.shake(260, 4);
+        return FSFx.deflect(state, SAVE_SIDE[cell]);
       })
       .then(function () {
         say(FSI18n.t('msg.miss'), 1800);
         panel.classList.remove('is-armed');
         anim.reset();
-        return resetBall();
+        return FSFx.home(ball);
       })
       .then(function () {
         stage.dataset.state = 'aiming';
@@ -291,7 +159,7 @@
 
     anim.reset();
     stage.dataset.state = 'idle';
-    return resetBall();
+    return FSFx.home(ball);
   }
 
   /* ── boot ─────────────────────────────────────────────────── */
@@ -306,7 +174,9 @@
     msg    = document.querySelector('.msg');
     panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
 
-    anim = new FSAnimator.PoseAnimator(keeper);
+    FSFx.init();
+    anim = new FSAnimator.PoseAnimator(keeper,
+                                       document.querySelector('.keeper-shadow'));
     anim.preload();
 
     keeper.classList.add('is-idling');

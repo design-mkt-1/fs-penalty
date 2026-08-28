@@ -285,7 +285,9 @@
   height: calc(var(--gw) * 2);
   margin-left: calc(var(--gw) * -4);
   transform-origin: 50% 0%;
-  transform: rotateX(80.2deg) scaleX(.5);
+  transform: translate(calc(var(--shake-x, 0px) * 1.4),
+                       calc(var(--shake-y, 0px) * 1.4))
+             rotateX(80.2deg) scaleX(.5);
 }
 
 .turf__line,
@@ -497,6 +499,30 @@
 
 /* ══ goalkeeper ═══════════════════════════════════════════════ */
 
+/* His shadow, on its own element so js/animator.js can shrink and fade it
+   while he is in the air and snap it back when he lands. A diver whose
+   shadow never changes size does not look like he left the ground, and the
+   drop-shadow filter on .keeper below cannot do this -- it is welded to the
+   sprite and travels with it.
+
+   Below .panels so the plates and the multiplier labels stay readable. */
+.keeper-shadow {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: -1.5%;
+  width: 34%;
+  height: 5.2%;
+  pointer-events: none;
+  opacity: .42;
+  transform: translateX(-50%);
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  background: radial-gradient(closest-side,
+              rgba(0,0,0,.66), rgba(0,0,0,.30) 58%, transparent);
+  filter: blur(1px);
+}
+
 /* Every pose sprite shares one 429x640 canvas and one camera, so the element
    is a fixed box and changing pose only swaps the background image. The idle
    figure fills 80% of that canvas, which puts it at ~132px on stage. */
@@ -583,7 +609,15 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent);
   filter: blur(2px);
+  transition: opacity .16s ease;
 }
+
+/* This one belongs to the ball standing on the spot. The moment a shot is
+   taken, js/fx.js draws a shadow that actually travels with the ball, so
+   this has to clear out or there would be two of them. */
+#stage[data-state="shooting"] .ball-zone::after,
+#stage[data-state="celebrate"] .ball-zone::after,
+#stage[data-state="form"] .ball-zone::after { opacity: 0; }
 
 /* A nudge that reads as "tap a panel". Class-gated so the scripted flight
    in game.js is never fighting these keyframes. */
@@ -631,9 +665,16 @@
   filter: drop-shadow(0 2px 10px rgba(63,214,43,.30));
 }
 
-/* ══ celebration particles ════════════════════════════════════ */
+/* ══ the effects canvas ═══════════════════════════════════════
 
-.burst {
+   Was .burst, and drew only confetti. It now carries the ball in flight,
+   the ball's travelling shadow, its motion blur, the net taking the shot
+   and the confetti -- everything js/fx.js draws. Deliberately NOT hidden
+   under prefers-reduced-motion the way .dust and .hit are: the ball itself
+   lives here, so hiding it would leave nothing to watch. fx.js cuts the
+   motion instead, at source. */
+
+.fx {
   position: absolute;
   inset: 0;
   z-index: 45;
@@ -644,7 +685,7 @@
   transition: opacity .2s ease;
 }
 
-.burst.is-live { opacity: 1; }
+.fx.is-live { opacity: 1; }
 
 /* ══ transient message ════════════════════════════════════════ */
 

@@ -25,6 +25,20 @@
     jump_center_down: { x:      0, y:   4.88, scale: .96  }   // low  centre
   };
 
+  /* Which file each pose shows. jump_center_down has no render of its own and
+     borrows the idle figure; it is told apart by a much deeper crouch in the
+     tween rather than by the picture. Kept here rather than only in CSS so
+     preload() has something real to fetch. */
+  var SPRITES = {
+    idle:             'assets/img/keeper-idle.webp',
+    jump_L1:          'assets/img/keeper-jump_L1.webp',
+    jump_L2:          'assets/img/keeper-jump_L2.webp',
+    jump_R1:          'assets/img/keeper-jump_R1.webp',
+    jump_R2:          'assets/img/keeper-jump_R2.webp',
+    jump_center:      'assets/img/keeper-jump_center.webp',
+    jump_center_down: 'assets/img/keeper-idle.webp'
+  };
+
   /* The panel grid, column then row. */
   var CELL_XY = {
     tl: [0, 0], tc: [1, 0], tr: [2, 0],
@@ -69,25 +83,49 @@
     return out;
   })();
 
-  function PoseAnimator(el) {
+  /* The shape of a dive, in one place.
+
+     game.js needs two of these numbers — it fires the landing plume off
+     `land` and the dive itself off `duration`. It used to carry its own
+     copies (`90 + 540 * 0.84`), so retuning the dive here silently
+     desynchronised the dust. Read them, do not restate them. */
+  var TIMING = {
+    duration: 560,   // ms, full speed
+    soft:     200,   // ms, prefers-reduced-motion
+    coil:     0.18,  // weight is in the legs, sprite still the idle one
+    swap:     0.22,  // the feet leave: the pose sprite changes on this frame
+    launch:   0.44,  // most of the travel is done, body stretched thin
+    hang:     0.76,  // the top of the arc, where a dive appears to float
+    land:     0.90   // body meets the grass; the plume fires on this frame
+  };
+
+  function PoseAnimator(el, shadow) {
     this.el = el;
+    this.shadow = shadow || null;
     this.pose = 'idle';
     this.anim = null;
+    this.shadowAnim = null;
     this.poseTimer = 0;
   }
 
+  /* Pose sprites are plain CSS background-images on [data-pose]; the browser
+     fetches them on first use, which puts the fetch inside the first dive.
+
+     The previous version created a probe element and read
+     getComputedStyle(probe).backgroundImage. That returns the url string
+     without ever asking for the bytes, so it warmed nothing. An Image whose
+     src is set does fetch, and lands the file in the HTTP cache under the
+     same URL the stylesheet will ask for. */
   PoseAnimator.prototype.preload = function () {
-    // Pose sprites are plain CSS background-images on [data-pose]; the browser
-    // fetches them on first use. Warm them so the first dive does not flash.
-    var probe = document.createElement('div');
-    probe.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
-    document.body.appendChild(probe);
-    Object.keys(POSES).forEach(function (name) {
-      probe.className = 'keeper';
-      probe.setAttribute('data-pose', name);
-      getComputedStyle(probe).backgroundImage;
+    var seen = {};
+    Object.keys(SPRITES).forEach(function (name) {
+      var url = SPRITES[name];
+      if (seen[url]) return;
+      seen[url] = 1;
+      var img = new Image();
+      img.decoding = 'async';
+      img.src = url;
     });
-    probe.remove();
   };
 
   PoseAnimator.prototype.setPose = function (name) {
@@ -99,27 +137,55 @@
   /* The project curve, the same one in --ease-out and in form.css. */
   var EASE = 'cubic-bezier(.2,.9,.3,1)';
 
-  /* How far into the dive the body actually leaves the ground. Before this
-     the keeper is coiling, and the sprite is still the idle one -- swapping
-     it on the launch frame rather than on the click is most of what makes
-     six still images read as a dive. */
-  var LAUNCH = 0.21;
+  /* Launch and landing are the fast parts; the hang between them is slow.
+     Using the project curve on every frame made all five accelerate the same
+     way, which is what made six sprites read as one picture sliding. */
+  var EASE_IN = 'cubic-bezier(.55,.06,.68,.19)';   // into the launch
+  var EASE_LIN = 'linear';                          // through the air
 
   function reduced() {
     return window.matchMedia &&
            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
-  function pose(p, k, sx, sy) {
-    return 'translateX(-50%) translate(' + (p.x * k) + '%,' + (p.y * k) + '%) ' +
-           'scale(' + p.scale + ') scaleX(' + sx + ') scaleY(' + sy + ')';
+  /* One keyframe of the dive.
+
+     k     how far along the travel to the pose destination
+     lift  extra height above that line, in percent of the keeper's own box,
+           positive meaning up — this is what turns a slide into an arc
+     roll  body rotation in degrees, signed by the direction of the dive
+     sx/sy squash and stretch about `origin`
+     origin where the scaling happens: the feet while he is on the ground,
+           the middle of the body while he is not. Leaving it on the feet is
+           what made an airborne keeper read as growing out of the turf. */
+  function frame(p, k, lift, roll, sx, sy, origin) {
+    var dir = p.x === 0 ? 0 : (p.x > 0 ? 1 : -1);
+    return {
+      transform:
+        'translateX(-50%) ' +
+        'translate(' + (p.x * k).toFixed(2) + '%,' +
+                       (p.y * k - lift).toFixed(2) + '%) ' +
+        'rotate(' + (roll * dir).toFixed(2) + 'deg) ' +
+        'scale(' + p.scale + ') scaleX(' + sx + ') scaleY(' + sy + ')',
+      transformOrigin: origin
+    };
   }
 
-  /* Six sprites, one dive. What carries it is the shape of the tween:
-     anticipation, then a launch that stretches along the direction of travel,
-     then a follow-through past the mark and a settle back onto it. The sprite
-     is scaled about the feet (transform-origin in game.css), so the squash
-     reads as weight rather than as a resize. */
+  var FEET = '50% 100%';
+  var HIPS = '50% 74%';
+  var BODY = '50% 60%';
+
+  /* Six sprites, one dive.
+
+     What carries it is the shape of the tween. A real dive is: weight drops
+     into the legs, the feet leave the ground fast, the body floats through
+     an arc — this is the part a still photograph cannot show and the part
+     the old five-frame version had no room for, since it put the launch at
+     58% and the landing at 84% — then it hits the grass hard and settles.
+
+     Three things do the floating: the extra lift above the straight line,
+     the body rotation, and moving the scaling origin off the feet while he
+     is airborne. */
   PoseAnimator.prototype.play = function (name, opts) {
     opts = opts || {};
     var p = POSES[name] || POSES.idle;
@@ -129,9 +195,16 @@
 
     // The global reduced-motion rule in reset.css only reaches CSS
     // animations; a Web Animations tween has to be cut here.
-    var duration = opts.duration || (soft ? 200 : 540);
+    var duration = opts.duration || (soft ? TIMING.soft : TIMING.duration);
+
+    /* Only read layout when a dive is genuinely being interrupted. On the
+       normal path there is no running animation, the underlying value is the
+       plain CSS transform, and an implicit from-keyframe picks it up without
+       forcing a synchronous layout in the same frame as the click. */
+    var from = this.anim ? getComputedStyle(el).transform : null;
 
     if (this.anim) this.anim.cancel();
+    if (this.shadowAnim) this.shadowAnim.cancel();
     clearTimeout(this.poseTimer);
     el.classList.remove('is-idling');
 
@@ -139,27 +212,55 @@
     if (soft) {
       this.setPose(name);
       frames = [
-        { transform: getComputedStyle(el).transform },
-        { transform: pose(p, 1, 1, 1) }
+        from ? { transform: from } : {},
+        frame(p, 1, 0, 0, 1, 1, FEET)
       ];
     } else {
-      // Hold the idle sprite through the coil, swap on the launch frame.
+      // Hold the idle sprite through the coil, swap as the feet leave.
       this.poseTimer = setTimeout(function () { self.setPose(name); },
-                                  duration * LAUNCH);
+                                  duration * TIMING.swap);
 
-      var lean = p.x === 0 ? 0 : (p.x > 0 ? -3 : 3);   // coil against the dive
+      // A dive into the middle has nowhere to lean, so it buys its read from
+      // a deeper crouch instead. jump_center_down borrows the idle picture,
+      // so without this it is an idle keeper nudged downwards.
+      var flat = p.x === 0;
+      var lean = flat ? 0 : (p.x > 0 ? -3.5 : 3.5);
+      var crouchY = flat ? 7.5 : 5.5;
+      var crouchX = flat ? 1.12 : 1.09;
+      var crouchS = flat ? 0.84 : 0.87;
+
+      var head = from ? { transform: from, offset: 0, easing: EASE }
+                      : { offset: 0, easing: EASE };
+
       frames = [
-        { transform: getComputedStyle(el).transform, offset: 0, easing: EASE },
-        // Anticipation: weight drops into the legs and the body coils away.
-        { transform: 'translateX(-50%) translate(' + lean + '%, 3.5%) ' +
-                     'scale(1) scaleX(1.05) scaleY(.93)',
-          offset: LAUNCH, easing: EASE },
-        // Launch: stretched thin along the direction of travel.
-        { transform: pose(p, 0.82, 0.96, 1.07), offset: 0.58, easing: EASE },
-        // Follow-through past the mark.
-        { transform: pose(p, 1.045, 1.02, 0.99), offset: 0.84, easing: EASE },
+        head,
+
+        // Coil. Weight drops into the legs and the body leans away from the
+        // dive, so the launch has something to spring out of.
+        {
+          transform: 'translateX(-50%) translate(' + lean + '%,' + crouchY + '%) ' +
+                     'rotate(0deg) scale(1) scaleX(' + crouchX + ') scaleY(' + crouchS + ')',
+          transformOrigin: FEET,
+          offset: TIMING.coil,
+          easing: EASE_IN        // accelerate out of the crouch: explosive
+        },
+
+        // Launch. Most of the travel happens here, stretched thin along the
+        // direction of flight, rotating into the dive.
+        Object.assign(frame(p, 0.62, 5, 9, 0.94, 1.10, HIPS),
+                      { offset: TIMING.launch, easing: EASE_LIN }),
+
+        // Hang. Linear in, linear out: constant speed through the air is
+        // what makes it look like a body in flight rather than a tween.
+        Object.assign(frame(p, 0.93, 7.5, 12, 1.0, 1.02, BODY),
+                      { offset: TIMING.hang, easing: EASE_IN }),
+
+        // Land. Past the mark, and squashed by the impact.
+        Object.assign(frame(p, 1.05, 0, 4, 1.06, 0.94, FEET),
+                      { offset: TIMING.land, easing: EASE }),
+
         // Settle onto it.
-        { transform: pose(p, 1, 1, 1), offset: 1 }
+        Object.assign(frame(p, 1, 0, 0, 1, 1, FEET), { offset: 1 })
       ];
     }
 
@@ -172,8 +273,49 @@
       fill: 'forwards'
     });
 
+    this.playShadow(p, duration, soft);
+
     if (opts.onComplete) this.anim.onfinish = opts.onComplete;
     return this.anim;
+  };
+
+  /* The keeper's own shadow, on its own element so it can shrink and fade
+     independently of the body. It is the second half of the height cue the
+     ball gets from FSFx.drawShadow: a diver whose shadow stays the same size
+     never looks like he left the ground.
+
+     Offsets are percentages of the shadow's own box. The keeper is 30.6% of
+     the goal wide and the shadow 34%, so p.x% of the keeper is p.x * .9 of
+     the shadow — the same conversion landing() does for the dust plume. */
+  var SHADOW_K = 0.306 / 0.34;
+
+  PoseAnimator.prototype.playShadow = function (p, duration, soft) {
+    if (!this.shadow) return;
+
+    function sf(k, scale, alpha) {
+      return {
+        transform: 'translateX(-50%) translateX(' +
+                   (p.x * SHADOW_K * k).toFixed(2) + '%) scale(' + scale + ')',
+        opacity: String(alpha)
+      };
+    }
+
+    var frames = soft
+      ? [{}, sf(1, 1, 0.42)]
+      : [
+          { offset: 0, easing: EASE },
+          Object.assign(sf(0, 1.14, 0.5),     { offset: TIMING.coil,   easing: EASE_IN }),
+          Object.assign(sf(0.62, 0.68, 0.24), { offset: TIMING.launch, easing: EASE_LIN }),
+          Object.assign(sf(0.93, 0.56, 0.16), { offset: TIMING.hang,   easing: EASE_IN }),
+          Object.assign(sf(1.05, 1.12, 0.5),  { offset: TIMING.land,   easing: EASE }),
+          Object.assign(sf(1, 1, 0.42),       { offset: 1 })
+        ];
+
+    this.shadowAnim = this.shadow.animate(frames, {
+      duration: duration,
+      easing: 'linear',
+      fill: 'forwards'
+    });
   };
 
   /* Where the keeper's feet land, as a share of the dust plume's own width.
@@ -194,6 +336,7 @@
         // Hand the transform back to CSS so the idle bob can resume.
         clearTimeout(self.poseTimer);
         if (self.anim) { self.anim.cancel(); self.anim = null; }
+        if (self.shadowAnim) { self.shadowAnim.cancel(); self.shadowAnim = null; }
         el.classList.add('is-idling');
         if (opts && opts.onComplete) opts.onComplete();
       }
@@ -203,7 +346,9 @@
   window.FSAnimator = {
     PoseAnimator: PoseAnimator,
     POSES: POSES,
+    SPRITES: SPRITES,
     COVERS: COVERS,
-    WRONG_WAY: WRONG_WAY
+    WRONG_WAY: WRONG_WAY,
+    TIMING: TIMING
   };
 })();

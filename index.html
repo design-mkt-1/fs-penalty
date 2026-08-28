@@ -90,6 +90,7 @@
         </div>
 
         <div class="dust" aria-hidden="true"></div>
+        <div class="keeper-shadow" aria-hidden="true"></div>
         <div class="keeper" data-pose="idle" role="presentation"></div>
         <div class="hit" aria-hidden="true"></div>
       </div>
@@ -100,8 +101,8 @@
       <button class="ball" type="button" data-i18n-attr="aria-label:ball.shoot"></button>
     </div>
 
-    <!-- ── celebration particles ──────────────────────────────── -->
-    <canvas class="burst" aria-hidden="true"></canvas>
+    <!-- ── ball in flight, shadows, net and confetti ──────────── -->
+    <canvas class="fx" aria-hidden="true"></canvas>
 
     <!-- ── transient message ──────────────────────────────────── -->
     <p class="msg" role="status" aria-live="polite" hidden></p>
@@ -204,6 +205,7 @@
 <script src="js/stage.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/animator.js"></script>
+<script src="js/fx.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/game.js"></script>
 <script src="js/form.js"></script>

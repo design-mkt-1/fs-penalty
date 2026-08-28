@@ -1,4 +1,4 @@
-/* Keeps the page from ever scrolling, and keeps the confetti canvas the same
+/* Keeps the page from ever scrolling, and keeps the effects canvas the same
    size as the stage.
 
    There used to be a scale() here: a fixed 390x844 canvas shrunk with a
@@ -14,28 +14,28 @@
   var GOAL_REF = 360;
 
   var stage = document.getElementById('stage');
-  var burst = document.querySelector('.burst');
+  var fx = document.querySelector('.fx');
 
-  /* Cap the buffer at 2x: past that the confetti costs more to draw than it
+  /* Cap the buffer at 2x: past that the scene costs more to draw than it
      gains, and a 3x phone would allocate four times the pixels for nothing. */
   function ratio() {
     return Math.min(window.devicePixelRatio || 1, 2);
   }
 
   function fit() {
-    if (!burst) return;
+    if (!fx) return;
     var r = stage.getBoundingClientRect();
     if (!r.width || !r.height) return;
 
     var k = ratio();
     var w = Math.round(r.width * k);
     var h = Math.round(r.height * k);
-    if (burst.width === w && burst.height === h) return;
+    if (fx.width === w && fx.height === h) return;
 
-    burst.width = w;
-    burst.height = h;
+    fx.width = w;
+    fx.height = h;
     // Draw in CSS pixels; the buffer scale is handled once, here.
-    burst.getContext('2d').setTransform(k, 0, 0, k, 0, 0);
+    fx.getContext('2d').setTransform(k, 0, 0, k, 0, 0);
   }
 
   /* The width of the goal as rendered, over the width it was designed at.
