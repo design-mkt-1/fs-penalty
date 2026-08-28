@@ -19,17 +19,49 @@
     jump_center_down: { x:   0, y:   8, scale: .96  }   // low  centre
   };
 
-  /* Which dive covers which panel. */
+  /* The panel grid, column then row. */
+  var CELL_XY = {
+    tl: [0, 0], tc: [1, 0], tr: [2, 0],
+    bl: [0, 1], bc: [1, 1], br: [2, 1]
+  };
+
+  /* Which dive covers which panel. Must stay injective — one pose per cell —
+     because WRONG_WAY below relies on it to guarantee a different pose. */
   var COVERS = {
     tl: 'jump_L2', tc: 'jump_center',      tr: 'jump_R2',
     bl: 'jump_L1', bc: 'jump_center_down', br: 'jump_R1'
   };
 
-  /* Where the keeper goes when he guesses wrong — always the far side. */
-  var WRONG_WAY = {
-    tl: 'jump_R2', tc: 'jump_L2',          tr: 'jump_L2',
-    bl: 'jump_R1', bc: 'jump_center_down', br: 'jump_L1'
-  };
+  /* Where the keeper goes when he guesses wrong: the dive that covers the
+     furthest cell from the one the ball is heading for.
+
+     This is derived rather than written out by hand. The hand-written table it
+     replaces mapped bc to jump_center_down — which is bc's own cover — so a
+     goal into the bottom-centre panel sent the keeper to exactly where the
+     ball was going, and the shot read as a save. Deriving it makes that class
+     of collision impossible: the furthest cell is never the cell itself, and
+     COVERS is injective, so the pose always differs. */
+  var WRONG_WAY = (function () {
+    var out = {};
+    Object.keys(CELL_XY).forEach(function (cell) {
+      var here = CELL_XY[cell];
+      var best = null;
+      var bestDistance = -1;
+      Object.keys(CELL_XY).forEach(function (other) {
+        if (other === cell) return;
+        var there = CELL_XY[other];
+        var dx = there[0] - here[0];
+        var dy = there[1] - here[1];
+        var distance = dx * dx + dy * dy;
+        if (distance > bestDistance) {
+          bestDistance = distance;
+          best = other;
+        }
+      });
+      out[cell] = COVERS[best];
+    });
+    return out;
+  })();
 
   function PoseAnimator(el) {
     this.el = el;
