@@ -354,6 +354,67 @@
   background: url("../assets/img/goal.webp") center / 100% 100% no-repeat;
 }
 
+/* ══ impact ═══════════════════════════════════════════════════ */
+
+/* Six sprites cannot show a landing, so the ground does it instead: a plume
+   where the keeper's feet arrive. It hangs off the goal rather than off the
+   keeper, so the squash in the dive tween does not stretch it too --
+   js/animator.js hands over the landing offset. */
+.dust {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: -5%;
+  width: 26%;
+  aspect-ratio: 3 / 1;
+  margin-left: -13%;
+  translate: var(--dust-x, 0) 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(222, 236, 255, .42), transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dust.is-live { animation: dust 700ms var(--ease-out) forwards; }
+
+@keyframes dust {
+  0%   { opacity: 0;  transform: scale(.3); }
+  18%  { opacity: .8; transform: scale(1); }
+  100% { opacity: 0;  transform: scale(1.9); }
+}
+
+/* Where the ball struck. A ring out of the contact point, so the shot lands
+   somewhere instead of simply stopping. */
+.hit {
+  position: absolute;
+  z-index: 4;
+  left: var(--hit-x, 50%);
+  top: var(--hit-y, 50%);
+  width: 22%;
+  aspect-ratio: 1;
+  margin: -11% 0 0 -11%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .85);
+  box-shadow: 0 0 18px rgba(255, 255, 255, .35);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hit.is-live { animation: hit 520ms var(--ease-out) forwards; }
+
+@keyframes hit {
+  0%   { opacity: 0; transform: scale(.18); }
+  12%  { opacity: 1; transform: scale(.4); }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+
+/* reset.css cuts every animation to 0.01ms under reduced motion, which would
+   leave these as a one-frame flash. Better to have them not happen. */
+@media (prefers-reduced-motion: reduce) {
+  .dust,
+  .hit { display: none; }
+}
+
 /* ══ multiplier panels — brandbook "glass plate" ══════════════ */
 
 /* Insets measured off goal.webp: the posts occupy the outer 3.3% on each side,

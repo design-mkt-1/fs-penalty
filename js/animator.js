@@ -73,6 +73,7 @@
     this.el = el;
     this.pose = 'idle';
     this.anim = null;
+    this.poseTimer = 0;
   }
 
   PoseAnimator.prototype.preload = function () {
@@ -95,26 +96,93 @@
     this.el.setAttribute('data-pose', name);
   };
 
+  /* The project curve, the same one in --ease-out and in form.css. */
+  var EASE = 'cubic-bezier(.2,.9,.3,1)';
+
+  /* How far into the dive the body actually leaves the ground. Before this
+     the keeper is coiling, and the sprite is still the idle one -- swapping
+     it on the launch frame rather than on the click is most of what makes
+     six still images read as a dive. */
+  var LAUNCH = 0.21;
+
+  function reduced() {
+    return window.matchMedia &&
+           window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function pose(p, k, sx, sy) {
+    return 'translateX(-50%) translate(' + (p.x * k) + '%,' + (p.y * k) + '%) ' +
+           'scale(' + p.scale + ') scaleX(' + sx + ') scaleY(' + sy + ')';
+  }
+
+  /* Six sprites, one dive. What carries it is the shape of the tween:
+     anticipation, then a launch that stretches along the direction of travel,
+     then a follow-through past the mark and a settle back onto it. The sprite
+     is scaled about the feet (transform-origin in game.css), so the squash
+     reads as weight rather than as a resize. */
   PoseAnimator.prototype.play = function (name, opts) {
     opts = opts || {};
     var p = POSES[name] || POSES.idle;
-    var duration = opts.duration || 420;
     var el = this.el;
+    var self = this;
+    var soft = reduced();
+
+    // The global reduced-motion rule in reset.css only reaches CSS
+    // animations; a Web Animations tween has to be cut here.
+    var duration = opts.duration || (soft ? 200 : 540);
 
     if (this.anim) this.anim.cancel();
+    clearTimeout(this.poseTimer);
     el.classList.remove('is-idling');
-    this.setPose(name);
 
-    var to = 'translateX(-50%) translate(' + p.x + '%,' + p.y + '%) ' +
-             'scale(' + p.scale + ')';
+    var frames;
+    if (soft) {
+      this.setPose(name);
+      frames = [
+        { transform: getComputedStyle(el).transform },
+        { transform: pose(p, 1, 1, 1) }
+      ];
+    } else {
+      // Hold the idle sprite through the coil, swap on the launch frame.
+      this.poseTimer = setTimeout(function () { self.setPose(name); },
+                                  duration * LAUNCH);
 
-    this.anim = el.animate(
-      [{ transform: getComputedStyle(el).transform }, { transform: to }],
-      { duration: duration, easing: 'cubic-bezier(.2,.9,.3,1)', fill: 'forwards' }
-    );
+      var lean = p.x === 0 ? 0 : (p.x > 0 ? -3 : 3);   // coil against the dive
+      frames = [
+        { transform: getComputedStyle(el).transform, offset: 0, easing: EASE },
+        // Anticipation: weight drops into the legs and the body coils away.
+        { transform: 'translateX(-50%) translate(' + lean + '%, 3.5%) ' +
+                     'scale(1) scaleX(1.05) scaleY(.93)',
+          offset: LAUNCH, easing: EASE },
+        // Launch: stretched thin along the direction of travel.
+        { transform: pose(p, 0.82, 0.96, 1.07), offset: 0.58, easing: EASE },
+        // Follow-through past the mark.
+        { transform: pose(p, 1.045, 1.02, 0.99), offset: 0.84, easing: EASE },
+        // Settle onto it.
+        { transform: pose(p, 1, 1, 1), offset: 1 }
+      ];
+    }
+
+    // linear on the effect, not EASE: an iteration easing is applied on top of
+    // the per-keyframe ones, and a curve this strong crushes the whole dive
+    // into the first fifth of its time. The shaping belongs on the frames.
+    this.anim = el.animate(frames, {
+      duration: duration,
+      easing: 'linear',
+      fill: 'forwards'
+    });
 
     if (opts.onComplete) this.anim.onfinish = opts.onComplete;
     return this.anim;
+  };
+
+  /* Where the keeper's feet land, as a share of the dust plume's own width.
+     The keeper is 30.6% of the goal wide and the plume 26%, so a pose offset
+     of p.x% of the keeper is p.x * .306 / .26 of the plume. game.js uses this
+     to put the puff under him instead of under the middle of the goal. */
+  PoseAnimator.prototype.landing = function (name) {
+    var p = POSES[name] || POSES.idle;
+    return (p.x * 1.177).toFixed(1) + '%';
   };
 
   PoseAnimator.prototype.reset = function (opts) {
@@ -124,6 +192,7 @@
       duration: (opts && opts.duration) || 520,
       onComplete: function () {
         // Hand the transform back to CSS so the idle bob can resume.
+        clearTimeout(self.poseTimer);
         if (self.anim) { self.anim.cancel(); self.anim = null; }
         el.classList.add('is-idling');
         if (opts && opts.onComplete) opts.onComplete();

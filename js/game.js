@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var stage, ball, keeper, msg, panels, anim;
+  var stage, ball, keeper, msg, panels, anim, goal, dust, hit;
   var attempt = 0;
   var busy = false;
   var msgTimer = 0;
@@ -168,6 +168,29 @@
     })(performance.now());
   }
 
+  /* ── impact ─────────────────────────────────────── */
+
+  /* Restart a one-shot CSS animation. Removing the class is not enough on its
+     own -- the style has to be recomputed in between, which reading a layout
+     property forces. Cheap enough here: a visitor fires it twice a visit. */
+  function fx(el, vars) {
+    el.classList.remove('is-live');
+    void el.offsetWidth;
+    if (vars) Object.keys(vars).forEach(function (k) { el.style.setProperty(k, vars[k]); });
+    el.classList.add('is-live');
+  }
+
+  /* The strike point, as a share of the goal box, so the ring lands on the
+     panel whatever size the goal renders at. */
+  function mark(panel) {
+    var g = goal.getBoundingClientRect();
+    var r = panel.getBoundingClientRect();
+    fx(hit, {
+      '--hit-x': ((r.left + r.width / 2 - g.left) / g.width * 100).toFixed(1) + '%',
+      '--hit-y': ((r.top + r.height / 2 - g.top) / g.height * 100).toFixed(1) + '%'
+    });
+  }
+
   /* ── messages ─────────────────────────────────────────────── */
 
   function say(text, ms) {
@@ -196,13 +219,19 @@
     FSAudio.play('kick', 0.9);
 
     // The keeper commits early, as he would in a real penalty.
+    var dive = scores ? FSAnimator.WRONG_WAY[cell] : FSAnimator.COVERS[cell];
+    setTimeout(function () { anim.play(dive); }, 90);
+
+    // He meets the ground on the follow-through frame of that dive, 84% of
+    // its 540ms. The plume is the landing a still sprite cannot show.
     setTimeout(function () {
-      anim.play(scores ? FSAnimator.WRONG_WAY[cell] : FSAnimator.COVERS[cell]);
-    }, 90);
+      fx(dust, { '--dust-x': anim.landing(dive) });
+    }, 90 + 540 * 0.84);
 
     if (scores) {
       flight(panel, { duration: 640 })
         .then(function () {
+          mark(panel);
           FSAudio.play('net', 0.8);
           FSAudio.play('cheer', 0.7);
           stage.dataset.state = 'celebrate';
@@ -221,6 +250,7 @@
 
     flight(panel, { duration: 620, stopAt: 0.82 })
       .then(function (state) {
+        mark(panel);
         FSAudio.play('save', 0.9);
         return rebound(state);
       })
@@ -253,6 +283,8 @@
     msg.hidden = true;
 
     panels.forEach(function (p) { p.classList.remove('is-armed'); });
+    dust.classList.remove('is-live');
+    hit.classList.remove('is-live');
 
     attempt = 0;
     busy = false;
@@ -268,6 +300,9 @@
     stage  = document.getElementById('stage');
     ball   = document.querySelector('.ball');
     keeper = document.querySelector('.keeper');
+    goal   = document.querySelector('.goal');
+    dust   = document.querySelector('.dust');
+    hit    = document.querySelector('.hit');
     msg    = document.querySelector('.msg');
     panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
 
