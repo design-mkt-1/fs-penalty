@@ -3,19 +3,19 @@
 .hdr {
   position: relative;
   z-index: 40;
-  flex: 0 0 var(--hdr-h);
+  flex: 0 0 clamp(52px, 7cqh, 74px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 14px;
+  padding: 0 clamp(12px, 3.6cqw, 30px);
   background: rgba(11,11,13,.72);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255,255,255,.06);
 }
 
-.hdr__logo img { height: 26px; width: auto; }
+.hdr__logo img { height: clamp(24px, 3.4cqh, 34px); width: auto; }
 
 .hdr__right { display: flex; align-items: center; gap: 8px; }
 
@@ -167,15 +167,52 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  /* cqw and cqh on .goal below mean "of the pitch" because of this. */
+  container: pitch / size;
 }
 
 /* The stadium plate covers the whole stage, not just the pitch row, so the
-   ball and the tagline sit on grass rather than on a black band. */
-#stage {
+   ball and the tagline sit on grass rather than on a black band.
+
+   It sits on a pseudo-element rather than on #stage itself for one reason:
+   #stage is the container, so container units written in its own declarations
+   would resolve against the viewport instead -- safe-area padding and all.
+   Inside ::before they mean what they say. */
+#stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background-image: url("../assets/img/stadium.webp");
   background-size: cover;
-  background-position: 50% 34%;
+  background-position: 50% 0;
   background-color: var(--ink-950);
+}
+
+/* stadium.webp is 781x1400 and its grass starts 52% of the way down.
+   Portrait is easy: the render is narrower than any phone, so cover fills the
+   height exactly, the grass lands at 52% of the stage, and position-y does
+   nothing at all. Wider than 781/1400 and cover starts scaling by width
+   instead -- the visible slice shrinks to a band, and at the old 34% that band
+   was floodlights and stands, which left the goal standing on concrete.
+
+   So place it by the landmark instead of by a percentage. Cover's scaled
+   height is 100cqw x 1400/781 = 179.3cqw, the grass line is .52 into that
+   (93.2cqw), and we want that line 40% down the stage. The clamp keeps the
+   image covering top and bottom near the crossover aspect, where the
+   arithmetic on its own would leave a strip uncovered.
+
+   This is a placement fix, not the perspective fix. The markings in the photo
+   still belong to a different point of view than the goal drawn over them;
+   that needs new artwork, or the lines drawn in SVG. */
+@container viewport (min-aspect-ratio: 781 / 1400) {
+  #stage::before {
+    background-position-y: clamp(
+      calc(100cqh - 179.3cqw),
+      calc(40cqh - 93.2cqw),
+      0px
+    );
+  }
 }
 
 /* Vignette that darkens the frame edges and keeps the goal the focal point. */
@@ -199,8 +236,11 @@
   left: 50%;
   top: 46.5%;
   transform: translate(-50%, -50%);
-  width: 360px;
-  height: 186px;
+  width: min(92cqw, 135cqh, 560px);
+  aspect-ratio: 900 / 466;
+  /* inline-size, not size: the labels and gaps below want cqw of the goal,
+     and inline-size cannot fight the aspect-ratio that sets the height. */
+  container: goal / inline-size;
   filter: drop-shadow(0 0 22px rgba(154,79,254,.30));
 }
 
@@ -209,7 +249,7 @@
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -6px;
+  bottom: -3%;
   width: 104%;
   height: 22px;
   transform: translateX(-50%);
@@ -236,8 +276,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 6px;
-  padding: 6px;
+  gap: clamp(4px, 1.7cqw, 10px);
+  padding: clamp(4px, 1.7cqw, 10px);
 }
 
 .panel {
@@ -255,7 +295,7 @@
 
 .panel span {
   font-weight: var(--fw-black);
-  font-size: 20px;
+  font-size: clamp(14px, 5.6cqw, 30px);
   line-height: 1;
   letter-spacing: -.01em;
   /* The two centre labels land on the keeper's kit, so the halo has to carry
@@ -264,12 +304,12 @@
     0 2px 6px rgba(0,0,0,.75),
     0 0 14px rgba(0,0,0,.85),
     0 0 3px rgba(0,0,0,.9);
-  transform: translateY(-16px);   /* clear of the keeper's silhouette */
+  transform: translateY(-4.4cqw);   /* clear of the keeper's silhouette */
 }
 
 /* The keeper renders in front of the plates, so the two centre labels are
    pushed to the edges of their cells: above his head, and between his boots. */
-.panel[data-cell="bc"] span { transform: translateY(30px); }
+.panel[data-cell="bc"] span { transform: translateY(8.3cqw); }
 
 /* The two ×12 corners get the colored glass plate treatment. */
 .panel[data-mult="12"] {
@@ -314,9 +354,9 @@
   position: absolute;
   z-index: 3;
   left: 50%;
-  bottom: -13px;
-  width: 110px;
-  height: 164px;
+  bottom: -7%;
+  width: 30.6%;
+  height: 88.2%;
   pointer-events: none;
   transform: translateX(-50%);
   transform-origin: 50% 100%;
@@ -338,13 +378,19 @@
 .keeper.is-idling { animation: keeper-idle 2.4s ease-in-out infinite; }
 
 @keyframes keeper-idle {
-  0%, 100% { transform: translateX(-50%) translateY(0)    scaleY(1);    }
-  50%      { transform: translateX(-50%) translateY(-3px) scaleY(1.015); }
+  0%, 100% { transform: translateX(-50%) translateY(0)      scaleY(1);    }
+  50%      { transform: translateX(-50%) translateY(-1.83%) scaleY(1.015); }
 }
 
 /* ══ ball ═════════════════════════════════════════════════════ */
 
-.ball-zone { position: relative; flex: 0 0 170px; }
+.ball-zone {
+  position: relative;
+  flex: 0 0 clamp(118px, 20cqh, 240px);
+  container: ballzone / size;
+  --ball: min(24.6cqw, 62cqh, 124px);
+  --ball-top: 21%;
+}
 
 /* Tapping the ball is the "surprise me" shot: game.js picks a panel at random.
    It is a real button so it is reachable by keyboard and announced by screen
@@ -353,10 +399,10 @@
   position: absolute;
   z-index: 20;
   left: 50%;
-  top: 36px;
-  width: 96px;
-  height: 96px;
-  margin-left: -48px;
+  top: var(--ball-top);
+  width: var(--ball);
+  height: var(--ball);
+  margin-left: calc(var(--ball) / -2);
   padding: 0;
   border-radius: 50%;
   will-change: transform;
@@ -380,10 +426,10 @@
   content: "";
   position: absolute;
   left: 50%;
-  top: 132px;
-  width: 84px;
-  height: 14px;
-  margin-left: -42px;
+  top: calc(var(--ball-top) + var(--ball));
+  width: calc(var(--ball) * .875);
+  height: calc(var(--ball) * .146);
+  margin-left: calc(var(--ball) * -.4375);
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent);
   filter: blur(2px);
@@ -395,7 +441,7 @@
 
 @keyframes ball-bob {
   0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
+  50%      { transform: translateY(-7.3%); }
 }
 
 /* ══ call to action ═══════════════════════════════════════════ */
@@ -405,9 +451,10 @@
   position: relative;
   z-index: 10;
   flex: 0 0 auto;
+  container: tagline / inline-size;
   display: grid;
   place-items: center;
-  padding: 18px 20px 16px;
+  padding: clamp(12px, 2.2cqh, 30px) clamp(16px, 5cqw, 40px) clamp(10px, 1.9cqh, 26px);
   text-align: center;
 }
 
@@ -423,7 +470,7 @@
 
 .tagline__text {
   font-weight: var(--fw-black);
-  font-size: 27px;
+  font-size: clamp(20px, 7.8cqw, 46px);
   line-height: 1.06;
   letter-spacing: -.01em;
   text-transform: uppercase;
@@ -465,7 +512,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow: var(--glow-purple);
   font-weight: var(--fw-xbold);
-  font-size: 17px;
+  font-size: clamp(14px, 4.4cqw, 24px);
   white-space: nowrap;
   opacity: 0;
   transition: opacity .25s ease, transform .25s ease;

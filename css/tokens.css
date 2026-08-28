@@ -145,9 +145,4 @@
 
   --glow-green: 0 0 24px rgba(63,214,43,.45);
   --glow-purple: 0 0 28px rgba(154,79,254,.45);
-
-  /* ── Stage geometry (see stage.css / stage.js) ────────────── */
-  --stage-w: 390px;
-  --stage-h: 844px;
-  --hdr-h: 54px;
 }

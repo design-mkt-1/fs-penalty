@@ -11,8 +11,8 @@
 
   /* ── geometry helpers ─────────────────────────────────────── */
 
-  function scale() {
-    return stage.getBoundingClientRect().width / 390 || 1;
+  function unit() {
+    return FSStage.unit();
   }
 
   function centre(el) {
@@ -31,12 +31,12 @@
   /* ── ball flight ──────────────────────────────────────────── */
 
   function flight(target, opts) {
-    var k = scale();
+    var k = unit();
     var from = centre(ball);
     var to = centre(target);
-    var dx = (to.x - from.x) / k;
-    var dy = (to.y - from.y) / k;
-    var lift = 34;
+    var dx = to.x - from.x;
+    var dy = to.y - from.y;
+    var lift = 34 * k;
     var spin = dx >= 0 ? 620 : -620;
     var duration = opts.duration || 620;
     var stopAt = opts.stopAt || 1;
@@ -64,9 +64,10 @@
   }
 
   function rebound(state) {
+    var k = unit();
     var dir = state.x >= 0 ? 1 : -1;
-    var toX = state.x + dir * 96;
-    var toY = state.y + 150;
+    var toX = state.x + dir * 96 * k;
+    var toY = state.y + 150 * k;
     var duration = 420;
 
     return new Promise(function (resolve) {
@@ -113,21 +114,21 @@
   function celebrate(origin) {
     var canvas = document.querySelector('.burst');
     var ctx = canvas.getContext('2d');
-    var w = canvas.width, h = canvas.height;
-    var k = scale();
     var stageRect = stage.getBoundingClientRect();
-    var ox = (origin.x - stageRect.left) / k;
-    var oy = (origin.y - stageRect.top) / k;
+    var w = stageRect.width, h = stageRect.height;
+    var k = unit();
+    var ox = origin.x - stageRect.left;
+    var oy = origin.y - stageRect.top;
 
     var bits = [];
     for (var i = 0; i < 110; i++) {
       var angle = Math.PI * (0.08 + 0.84 * (i / 110)) + Math.PI;   // fan upward
-      var speed = 3.4 + (i % 7) * 0.85;
+      var speed = (3.4 + (i % 7) * 0.85) * k;
       bits.push({
         x: ox, y: oy,
         vx: Math.cos(angle) * speed * (0.7 + (i % 5) * 0.14),
         vy: Math.sin(angle) * speed,
-        size: 4 + (i % 4) * 2.2,
+        size: (4 + (i % 4) * 2.2) * k,
         spin: (i % 2 ? 1 : -1) * (0.1 + (i % 3) * 0.06),
         rot: i,
         colour: BURST_COLOURS[i % BURST_COLOURS.length]
@@ -144,7 +145,7 @@
 
       for (var i = 0; i < bits.length; i++) {
         var b = bits[i];
-        b.vy += 0.16;             // gravity
+        b.vy += 0.16 * k;         // gravity
         b.vx *= 0.992;
         b.x += b.vx;
         b.y += b.vy;

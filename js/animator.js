@@ -5,18 +5,24 @@
 (function () {
   'use strict';
 
-  /* Where the keeper ends up for each pose, in stage-logical pixels.
+  /* Where the keeper ends up for each pose, as a share of his own box.
      L/R are from the viewer's point of view, matching the panel columns.
      The sprite already carries the body angle, so these are pure translations
-     that carry the character across to the panel he is covering. */
+     that carry the character across to the panel he is covering.
+
+     Percentages, not pixels: translate() resolves them against the element's
+     own size, and css/game.css sizes the keeper at 30.6% x 88.2% of the goal.
+     So a dive lands on the same panel whether the goal renders 260px wide or
+     560px. The numbers are the old stage pixels over the 110x164 box they
+     were measured in -- -46px of 110 is -41.82%. */
   var POSES = {
-    idle:             { x:   0, y:   0, scale: 1    },
-    jump_L1:          { x: -40, y:  22, scale: 1    },  // low  left
-    jump_L2:          { x: -46, y: -30, scale: 1    },  // high left
-    jump_R1:          { x:  40, y:  22, scale: 1    },  // low  right
-    jump_R2:          { x:  46, y: -30, scale: 1    },  // high right
-    jump_center:      { x:   0, y: -18, scale: 1.02 },  // high centre
-    jump_center_down: { x:   0, y:   8, scale: .96  }   // low  centre
+    idle:             { x:      0, y:      0, scale: 1    },
+    jump_L1:          { x: -36.36, y:  13.41, scale: 1    },  // low  left
+    jump_L2:          { x: -41.82, y: -18.29, scale: 1    },  // high left
+    jump_R1:          { x:  36.36, y:  13.41, scale: 1    },  // low  right
+    jump_R2:          { x:  41.82, y: -18.29, scale: 1    },  // high right
+    jump_center:      { x:      0, y: -10.98, scale: 1.02 },  // high centre
+    jump_center_down: { x:      0, y:   4.88, scale: .96  }   // low  centre
   };
 
   /* The panel grid, column then row. */
@@ -99,7 +105,7 @@
     el.classList.remove('is-idling');
     this.setPose(name);
 
-    var to = 'translateX(-50%) translate(' + p.x + 'px,' + p.y + 'px) ' +
+    var to = 'translateX(-50%) translate(' + p.x + '%,' + p.y + '%) ' +
              'scale(' + p.scale + ')';
 
     this.anim = el.animate(

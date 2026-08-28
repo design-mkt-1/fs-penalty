@@ -1,28 +1,51 @@
-/* Scale the fixed 390x844 stage to fit whatever viewport we get,
-   without ever letting the page itself scroll. */
+/* Keeps the page from ever scrolling, and keeps the confetti canvas the same
+   size as the stage.
+
+   There used to be a scale() here: a fixed 390x844 canvas shrunk with a
+   transform. The stage is now the viewport itself and css/stage.css sizes
+   everything against it, so the only thing left to do in JS is the canvas,
+   whose drawing buffer cannot be set from CSS. */
 (function () {
   'use strict';
 
-  var STAGE_W = 390;
-  var STAGE_H = 844;
+  /* The reference composition. game.js scales its hand-tuned distances by the
+     ratio between the goal it actually got and the 360px goal they were
+     written against. */
+  var GOAL_REF = 360;
 
-  var viewport = document.getElementById('viewport');
   var stage = document.getElementById('stage');
+  var burst = document.querySelector('.burst');
+
+  /* Cap the buffer at 2x: past that the confetti costs more to draw than it
+     gains, and a 3x phone would allocate four times the pixels for nothing. */
+  function ratio() {
+    return Math.min(window.devicePixelRatio || 1, 2);
+  }
 
   function fit() {
-    // clientWidth/Height exclude the safe-area padding on #viewport,
-    // so notches and home indicators are already accounted for.
-    var w = viewport.clientWidth;
-    var h = viewport.clientHeight;
-    if (!w || !h) return;
+    if (!burst) return;
+    var r = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
 
-    var scale = Math.min(w / STAGE_W, h / STAGE_H);
+    var k = ratio();
+    var w = Math.round(r.width * k);
+    var h = Math.round(r.height * k);
+    if (burst.width === w && burst.height === h) return;
 
-    // On anything wider than a phone the design is presented as a centred
-    // device-sized frame rather than blown up to fill the desktop.
-    if (w > 480) scale = Math.min(scale, 1);
+    burst.width = w;
+    burst.height = h;
+    // Draw in CSS pixels; the buffer scale is handled once, here.
+    burst.getContext('2d').setTransform(k, 0, 0, k, 0, 0);
+  }
 
-    stage.style.setProperty('--fit', scale);
+  /* The width of the goal as rendered, over the width it was designed at.
+     Everything in game.js that used to be a stage-logical pixel is a
+     multiple of this instead. */
+  function unit() {
+    var goal = document.querySelector('.goal');
+    if (!goal) return 1;
+    var w = goal.getBoundingClientRect().width;
+    return w ? w / GOAL_REF : 1;
   }
 
   var raf = 0;
@@ -47,5 +70,5 @@
   }, { passive: true });
 
   fit();
-  window.FSStage = { fit: fit, width: STAGE_W, height: STAGE_H };
+  window.FSStage = { fit: fit, unit: unit, ratio: ratio };
 })();

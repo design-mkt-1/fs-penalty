@@ -1,6 +1,11 @@
-/* Fixed-viewport, zero-scroll shell.
-   The stage is a fixed 390x844 logical canvas; stage.js scales it to fit.
-   Nothing inside the stage depends on the real viewport size. */
+/* Fluid, zero-scroll shell.
+
+   This used to be a fixed 390x844 canvas that stage.js shrank with a
+   transform, which meant a phone-sized sliver in the middle of a desktop and
+   something unreadable in landscape. The stage now simply is the viewport,
+   and everything inside sizes itself against it with container query units.
+
+   The one rule that did not change: the page never scrolls. */
 
 html, body {
   position: fixed;
@@ -13,50 +18,57 @@ html, body {
   touch-action: manipulation;
 }
 
+/* A container as well as a box, so the two shape decisions below can be
+   asked of the space the stage actually gets rather than of the window --
+   on a notched phone in landscape those differ by the safe-area inset. A
+   container query can style its container's children, which is why #stage
+   itself can be reshaped from here. */
 #viewport {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
   overflow: hidden;
   padding:
     env(safe-area-inset-top) env(safe-area-inset-right)
     env(safe-area-inset-bottom) env(safe-area-inset-left);
+  container: viewport / size;
 }
 
-/* Extended backdrop behind the centred frame on wide screens.
-   Same artwork as the stage background, blown up and blurred. */
-#viewport::before {
-  content: "";
-  position: absolute;
-  inset: -6%;
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgba(154,79,254,.22), transparent 60%),
-    radial-gradient(90% 70% at 50% 100%, rgba(63,214,43,.16), transparent 65%),
-    var(--ink-950);
-  filter: blur(18px);
-  z-index: 0;
-}
-
+/* container-type: size is what makes cqw and cqh inside the stage mean "of
+   the stage" rather than "of the window" -- so the safe-area padding above
+   is already subtracted by the time anything measures itself. */
 #stage {
   position: relative;
   z-index: 1;
-  width: var(--stage-w);
-  height: var(--stage-h);
-  flex: 0 0 auto;
-  transform: scale(var(--fit, 1));
-  transform-origin: center center;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: var(--ink-900);
-  border-radius: var(--r-xl);
-  box-shadow: 0 24px 80px rgba(0,0,0,.7);
   isolation: isolate;
+  container: stage / size;
 }
 
-/* On a phone the frame fills the screen, so drop the rounding and shadow. */
-@media (max-width: 480px) {
-  #stage { border-radius: 0; box-shadow: none; }
-  #viewport::before { display: none; }
+/* Landscape and anything short and wide: the portrait column does not fit,
+   so the goal takes the left and the words and the ball stack on the right.
+   Below this height a stacked layout leaves the goal a few dozen pixels. */
+@container viewport (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  #stage {
+    display: grid;
+    grid-template-columns: 1fr minmax(150px, 36%);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      "hdr     hdr"
+      "pitch   tagline"
+      "pitch   ball";
+  }
+
+  .hdr       { grid-area: hdr; }
+  .pitch     { grid-area: pitch; }
+  .tagline   { grid-area: tagline; align-self: end; }
+  .ball-zone { grid-area: ball; }
+
+  /* The side column is a third of the width; the portrait padding would eat
+     most of it. */
+  .tagline { padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px); }
 }
