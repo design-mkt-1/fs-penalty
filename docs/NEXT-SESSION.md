@@ -203,13 +203,51 @@ value rather than by eye. The card was built from that node but has drifted —
 and two of its colours changed for contrast (`--muted` is `#9a9aa0`, the
 placeholder now uses it too).
 
-### E. Feel-check and tune the dive
+### E. Feel-check the rebuilt animation — branch `feat/game-feel`
 
-Depends on B. The dive is five keyframes over 540ms in `js/animator.js`:
-coil at 21%, launch stretched at 58%, follow-through past the mark at 84%,
-settle at 100%. The sprite swaps on the launch frame, 113ms in. If it reads
-slow or stuttery on a real screen, `duration` and the `LAUNCH` constant are
-the two dials.
+Depends on B, and it is now the largest open item. Commit `d0a5081` rebuilt
+both the ball and the dive; **none of it has been watched in motion.** The
+test browser ran the page in a background tab, where the document timeline is
+frozen — WAAPI does not advance at all — and `setTimeout` is clamped to about
+a second. Everything below was verified numerically or from the canvas
+pixels; nothing was verified by eye at full speed.
+
+What is new, and where the dials are:
+
+| Thing | File | Dial |
+|---|---|---|
+| Ball flight, perspective, shadow, motion blur | `js/fx.js` | `S_END` (0.30) governs both speed and size; `lift` (58) is the arc |
+| Save deflection, net bulge, camera shake, confetti | `js/fx.js` | `deflect()`, `netBulge()`, `shake()` |
+| The dive | `js/animator.js` | `TIMING` — duration 560, coil .18, swap .22, launch .44, hang .76, land .90 |
+| Keeper shadow | `css/game.css` `.keeper-shadow` | width 34%, `bottom: -1.5%` |
+
+Questions only a real screen can answer:
+
+* Is 620ms of flight too fast to read now that the ball leaves at full speed?
+  The old smoothstep hid this by starting slow.
+* Does the `hang` at 76% actually float, or does the keeper hover?
+* Is the 12° body roll too much for a sprite that already carries its angle?
+* Does the net bulge read as a net, or as a white blob?
+* Is the parallax on `.turf` (1.4x the goal's shake) visible or wasted?
+
+What *was* verified, and how:
+
+* The ball lands **0.0000px** from the panel centre, all six panels, at
+  1912x914 and at 360x640. The old flight had the same invariant; it holds.
+* Mid-flight the ball spans y 462–522 on the canvas at alpha 255 and its
+  shadow y 664–684 at alpha 48 — 142px of separation, which is the height cue.
+* The heaviest frame the engine can draw costs **0.1ms median, 0.5ms worst**
+  on a 1912x914 canvas, against a 16.7ms budget. That is a desktop GPU; a
+  low-end phone is the real test.
+* `prefers-reduced-motion` still flies the ball and still lands it exactly;
+  only the trail, shake, bulge and confetti drop out. `.fx` is deliberately
+  **not** hidden the way `.dust` and `.hit` are — the ball lives on it.
+
+Three long-standing defects were fixed on the way, and are worth not
+reintroducing: `preload()` read `getComputedStyle().backgroundImage`, which
+never fetches anything; `game.js` restated the dive timing as
+`90 + 540 * 0.84`, so retuning the dive desynced the dust; and `play()`
+forced a synchronous layout on every dive.
 
 ---
 
