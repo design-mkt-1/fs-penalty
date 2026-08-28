@@ -34,16 +34,23 @@
           <button class="lang" type="button" id="fs-lang-btn"
                   aria-haspopup="listbox" aria-expanded="false"
                   data-i18n-attr="aria-label:hdr.lang">
-            <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 2.5 15.4 0 18M12 3c-2.5 2.6-2.5 15.4 0 18"/>
-            </svg>
+            <img class="lang__flag" src="assets/img/icons/flag-gb.svg" alt="" width="20" height="15">
             <span class="lang__code">EN</span>
             <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6"/></svg>
           </button>
           <ul class="lang-menu" role="listbox" aria-labelledby="fs-lang-btn" hidden>
-            <li class="lang-opt" role="option" data-lang="uz" tabindex="-1"></li>
-            <li class="lang-opt" role="option" data-lang="ru" tabindex="-1"></li>
-            <li class="lang-opt" role="option" data-lang="en" tabindex="-1" aria-selected="true"></li>
+            <li class="lang-opt" role="option" data-lang="uz" tabindex="-1">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-uz.svg" alt="" width="22" height="16">
+              <span class="lang-opt__name"></span>
+            </li>
+            <li class="lang-opt" role="option" data-lang="ru" tabindex="-1">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-ru.svg" alt="" width="22" height="16">
+              <span class="lang-opt__name"></span>
+            </li>
+            <li class="lang-opt" role="option" data-lang="en" tabindex="-1" aria-selected="true">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-gb.svg" alt="" width="22" height="16">
+              <span class="lang-opt__name"></span>
+            </li>
           </ul>
         </div>
       </div>
@@ -118,7 +125,7 @@
               <div class="row">
                 <button class="country" type="button" data-i18n-attr="aria-label:field.country">
                   <span class="country__flag">
-                    <img src="assets/img/icons/flag-uz.png" alt="" width="26" height="20">
+                    <img src="assets/img/icons/flag-uz.svg" alt="" width="26" height="20">
                   </span>
                   <img class="country__caret" src="assets/img/icons/chevron-sm.svg" alt="" width="10" height="6">
                 </button>

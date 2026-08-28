@@ -278,8 +278,15 @@
   function syncSelector() {
     if (!btn) return;
     btn.querySelector('.lang__code').textContent = lang.toUpperCase();
+
     options.forEach(function (o) {
-      o.setAttribute('aria-selected', String(o.getAttribute('data-lang') === lang));
+      var on = o.getAttribute('data-lang') === lang;
+      o.setAttribute('aria-selected', String(on));
+      if (on) {
+        var flag = btn.querySelector('.lang__flag');
+        var src = o.querySelector('.lang-opt__flag');
+        if (flag && src) flag.src = src.getAttribute('src');
+      }
     });
   }
 
@@ -290,7 +297,8 @@
 
     options = Array.prototype.slice.call(menu.querySelectorAll('[data-lang]'));
     options.forEach(function (o) {
-      o.textContent = ENDONYM[o.getAttribute('data-lang')] || o.getAttribute('data-lang');
+      var code = o.getAttribute('data-lang');
+      o.querySelector('.lang-opt__name').textContent = ENDONYM[code] || code;
       o.addEventListener('click', function () { choose(o); });
     });
 

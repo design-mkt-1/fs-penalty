@@ -110,6 +110,20 @@
   transition: background-color 120ms ease, color 120ms ease;
 }
 
+/* Flags carry the meaning at a glance; the name beside them settles the
+   ambiguity a flag alone would leave (English is not a country). GB is the
+   convention for EN. Files and MIT licence in assets/img/icons/. */
+.lang__flag,
+.lang-opt__flag {
+  flex: 0 0 auto;
+  border-radius: 2px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .22);
+}
+
+.lang__flag { width: 20px; height: 15px; }
+.lang-opt__flag { width: 22px; height: 16px; }
+
 /* A drawn tick rather than U+2713: that codepoint is outside the latin
    subset of the Montserrat cut, so the glyph would arrive from a fallback. */
 .lang-opt::before {
