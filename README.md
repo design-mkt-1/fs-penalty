@@ -121,6 +121,12 @@ Playback is unlocked on the first user gesture — browsers refuse audio before
 one — and the mute state is persisted in `localStorage`. `audio.js` tolerates a
 missing file: that one effect simply never plays.
 
+## Picking the work back up
+
+`docs/NEXT-SESSION.md` is the handoff document: four confirmed defects with the
+evidence that reproduced them, the decisions already taken, and the verification
+steps. Start there.
+
 ## Known gaps
 
 * The registration card is client-side only — validation runs, but nothing is
