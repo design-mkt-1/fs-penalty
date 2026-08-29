@@ -9,9 +9,14 @@
   }
 
   ready(function () {
+    /* All four init() calls share this callback, so anything that throws up
+       here takes the whole page down with it. The mute button is a convenience;
+       the game is not. */
     var muteBtn = document.querySelector('.mute');
-    muteBtn.setAttribute('aria-pressed', String(FSAudio.isMuted()));
-    muteBtn.addEventListener('click', function () { FSAudio.toggle(); });
+    if (muteBtn) {
+      muteBtn.setAttribute('aria-pressed', String(FSAudio.isMuted()));
+      muteBtn.addEventListener('click', function () { FSAudio.toggle(); });
+    }
 
     // Audio can only start inside a user gesture.
     var unlock = function () {

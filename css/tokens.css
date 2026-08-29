@@ -67,6 +67,15 @@
 }
 
 :root {
+  /* The two ramps below are the brand palette in full. Most steps are not
+     referenced by any rule in css/ — only the ones the semantic layer picks up
+     and a handful used directly (--green-300/500, --purple-200, --ink-600…950).
+     They are kept deliberately, as the reference a new component picks from,
+     not because they are all live. Roughly 1.4 kB uncompressed, which is
+     nothing beside the page's images; the cost of losing them is a fourth
+     green invented by hand. Three already exist — see --accent here,
+     --cta in css/form.css and --promo, which are not each other. */
+
   /* ── Primary: Green Goblin ────────────────────────────────── */
   --green-50:  #ecfce9;
   --green-100: #d5f9ce;
@@ -126,7 +135,7 @@
 
   /* ── Type ─────────────────────────────────────────────────── */
   --font: "Montserrat", system-ui, -apple-system, sans-serif;
-  --fw-semi: 600;   /* unused; the Montserrat cut only carries 700-900 */
+  --fw-semi: 600;   /* Roboto only; the Montserrat cut carries 700-900 */
   --fw-bold: 700;
   --fw-xbold: 800;
   --fw-black: 900;

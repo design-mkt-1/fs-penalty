@@ -39,8 +39,11 @@
 /* ── card shell ───────────────────────────────────────────── */
 
 .card {
-  width: 365px;
-  max-width: 100%;
+  /* min(), not width + max-width: the sheet's grid column is auto-sized, so it
+     takes its width from this rule and a percentage max-width then resolves
+     against the column the card itself created. At 320px that left 57px of the
+     card outside the screen, on a page that cannot scroll to reach it. */
+  width: min(365px, 100%);
   max-height: 100%;
   /* The page never scrolls; if the soft keyboard squeezes the stage the
      card scrolls inside itself instead. */
@@ -79,14 +82,22 @@
   font-weight: 900;
 }
 
-.card .promo__pct { font-size: 76px; line-height: 1.05; }
+/* The card's type is fluid against #stage, the nearest query container. Each
+   cqw figure is the design value over the 390px stage it was drawn on — 76/390
+   is 19.5cqw — so a 390 phone still renders the design exactly and anything
+   narrower shrinks with it. The cqh half only binds in landscape, where the
+   card scrolls inside itself and a 76px numeral costs a field. */
+.card .promo__pct {
+  font-size: clamp(56px, min(19.5cqw, 17cqh), 76px);
+  line-height: 1.05;
+}
 
 .card .promo__stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  font-size: 30px;
+  font-size: clamp(23px, min(7.7cqw, 7cqh), 30px);
   line-height: 1;
 }
 
@@ -95,7 +106,7 @@
 
 .card .promo__sub {
   color: var(--promo);
-  font-size: 22px;
+  font-size: clamp(17px, min(5.65cqw, 5cqh), 22px);
   font-weight: 800;
   line-height: 1.1;
 }
@@ -350,7 +361,7 @@
   gap: 8px;
 }
 
-.card .done__title { font-size: 24px; font-weight: 900; color: #fff; }
+.card .done__title { font-size: clamp(19px, min(6.15cqw, 5.5cqh), 24px); font-weight: 900; color: #fff; }
 .card .done__sub { font-size: 16px; font-weight: 500; color: var(--foot); }
 
 .card .done__box {

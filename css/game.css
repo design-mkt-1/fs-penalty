@@ -2,7 +2,12 @@
 
 .hdr {
   position: relative;
-  z-index: 40;
+  /* Above .fx (45), below .sheet (50). This element is a stacking context, so
+     .lang-menu's own z-index: 60 is capped at whatever the header sits at —
+     at 40 the open menu painted underneath the effects canvas. Confetti now
+     passes behind the header bar instead, which costs nothing: it bursts from
+     the goal and falls, and never reaches the top 59px. */
+  z-index: 46;
   flex: 0 0 clamp(52px, 7cqh, 74px);
   display: flex;
   align-items: center;

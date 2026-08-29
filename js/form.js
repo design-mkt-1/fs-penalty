@@ -52,6 +52,8 @@
 
   function clearError(f) {
     f.classList.remove('is-invalid');
+    var input = f.querySelector('input');
+    if (input) input.removeAttribute('aria-invalid');
     var e = f.querySelector('.err');
     if (!e || e.hidden) return;
     e.classList.remove('is-shown');
@@ -61,6 +63,14 @@
 
   function showError(f) {
     f.classList.add('is-invalid');
+    /* The red ring is only half the message. aria-invalid states it, and the
+       focus move is what makes aria-describedby read the error out: nothing
+       announces a message that arrives while focus sits on the dialog. */
+    var input = f.querySelector('input');
+    if (input) {
+      input.setAttribute('aria-invalid', 'true');
+      input.focus({ preventScroll: true });
+    }
     var e = f.querySelector('.err');
     if (!e) return;
     clearTimeout(errTimers[e.id]);
@@ -72,18 +82,26 @@
     var f = field(mode);
     var input = f.querySelector('input');
     var value = input.value.trim();
-    var ok;
+    var ok, out;
 
     if (mode === 'phone') {
       // Digits only once separators are stripped, 7 to 15 of them (E.164 range).
       var digits = value.replace(/[^\d]/g, '');
       ok = digits.length >= 7 && digits.length <= 15 && !/[a-z]/i.test(value);
+      /* The +998 is fixed and put back on the done screen, so a number typed
+         with its country code has to lose it here or it is shown twice —
+         "+998 +998901234567". Strip only when nine digits are left: a national
+         number may itself begin 998, because 99 is a live mobile prefix. */
+      out = digits.length > 9 && digits.indexOf('998') === 0
+        ? digits.slice(3)
+        : digits;
     } else {
       ok = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value);
+      out = value;
     }
 
     if (ok) clearError(f); else showError(f);
-    return ok ? value : null;
+    return ok ? out : null;
   }
 
   function submit(ev) {
@@ -155,6 +173,19 @@
     else requestAnimationFrame(cb);
   }
 
+  /* Tab is trapped, but a screen reader's virtual cursor is not: without this
+     it browses the header, the six targets and the ball behind a dialog that
+     claims aria-modal. inert takes them out of the accessibility tree and out
+     of hit-testing in one attribute. Everything under #stage except the sheet
+     itself, which is where the card lives. */
+  function background(off) {
+    Array.prototype.forEach.call(sheet.parentNode.children, function (el) {
+      if (el === sheet) return;
+      if (off) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  }
+
   function open() {
     if (!sheet.hidden) return;
     lastFocus = document.activeElement;
@@ -162,6 +193,7 @@
 
     sheet.hidden = false;
     sheet.setAttribute('aria-hidden', 'false');
+    background(true);
     document.addEventListener('keydown', onKeydown, true);
 
     nextFrame(function () {
@@ -186,6 +218,9 @@
       sheet.setAttribute('aria-hidden', 'true');
       closing = false;
       restore();
+
+      // Before the focus restore below: focus() cannot land inside inert.
+      background(false);
 
       if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
       lastFocus = null;

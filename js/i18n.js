@@ -24,6 +24,15 @@
       'hdr.lang':       'Language',
       'tagline':        'Score the penalty\nand win!',
       'goal.aim':       'Choose where to shoot',
+      /* The six targets carry only a multiplier, and three of those repeat.
+         The position is what tells them apart; game.js joins it to the
+         multiplier, which stays in the markup. */
+      'cell.tl':        'Top left',
+      'cell.tc':        'Top centre',
+      'cell.tr':        'Top right',
+      'cell.bl':        'Bottom left',
+      'cell.bc':        'Bottom centre',
+      'cell.br':        'Bottom right',
       'ball.shoot':     'Shoot at a random spot',
       'msg.miss':       'So close! One more try',
       'msg.goal':       'GOAL!',
@@ -59,6 +68,12 @@
       'hdr.lang':       'Til',
       'tagline':        'Penaltini uring\nva yuting!',
       'goal.aim':       'Qayerga urishni tanlang',
+      'cell.tl':        'Yuqori chap',
+      'cell.tc':        'Yuqori oʻrta',
+      'cell.tr':        'Yuqori oʻng',
+      'cell.bl':        'Pastki chap',
+      'cell.bc':        'Pastki oʻrta',
+      'cell.br':        'Pastki oʻng',
       'ball.shoot':     'Tasodifiy joyga urish',
       'msg.miss':       'Ozgina qoldi! Yana urinib koʻring',
       'msg.goal':       'GOL!',
@@ -94,6 +109,12 @@
       'hdr.lang':       'Язык',
       'tagline':        'Забей пенальти\nи выиграй!',
       'goal.aim':       'Выберите, куда бить',
+      'cell.tl':        'Вверху слева',
+      'cell.tc':        'Вверху по центру',
+      'cell.tr':        'Вверху справа',
+      'cell.bl':        'Внизу слева',
+      'cell.bc':        'Внизу по центру',
+      'cell.br':        'Внизу справа',
       'ball.shoot':     'Удар в случайную точку',
       'msg.miss':       'Так близко! Ещё попытка',
       'msg.goal':       'ГОЛ!',
@@ -261,7 +282,11 @@
         }
         break;
       case 'Tab':
-        closeMenu(false);
+        /* Hand focus back to the trigger and let the Tab carry on from there,
+           forwards or backwards. Closing with `false` blurred instead, which
+           is the exact failure the comment in closeMenu warns about: the next
+           Tab restarted from the top of the page. */
+        closeMenu();
         break;
     }
   }

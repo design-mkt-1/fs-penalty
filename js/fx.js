@@ -173,10 +173,16 @@
   var BALL_CELL = 176;
 
   var ballArt = null;
+  var ballArtFailed = false;
 
   function loadBall() {
     var img = new Image();
     img.decoding = 'async';
+    /* Without this, a 404 on the sheet is silent and invisible in the worst
+       way: ballArt stays null, drawBall returns immediately, and shoot() has
+       already hidden the DOM ball — so the flight plays with no ball in it and
+       the promise resolves as if nothing were wrong. */
+    img.onerror = function () { ballArtFailed = true; };
     img.onload = function () {
       if (!window.createImageBitmap) { ballArt = img; return; }
       createImageBitmap(img).then(
@@ -378,7 +384,8 @@
     live(true);
     ballEl.classList.remove('is-bobbing');
     ballEl.style.transition = '';
-    ballEl.style.opacity = '0';
+    // Keep the DOM ball if the canvas has nothing to draw in its place.
+    if (!ballArtFailed) ballEl.style.opacity = '0';
 
     function at(t) {
       var u = progress(t);

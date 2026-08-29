@@ -14,12 +14,24 @@
 
   var pool = {};
   var unlocked = false;
-  var muted = localStorage.getItem(KEY) === '1';
+
+  /* Guarded the same way js/i18n.js guards its own two calls. Unguarded, a
+     storage that throws — private mode, or an iframe with third-party storage
+     blocked, and this is a landing page — kills this IIFE at parse time. Then
+     window.FSAudio never exists, main.js throws on the line after it, and
+     FSI18n, FSForm, FSGame and FSStage never initialise: the page is a dead
+     picture with nothing in the console to say why. */
+  var muted = false;
+  try { muted = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode */ }
 
   function load() {
     Object.keys(FILES).forEach(function (name) {
       var a = new Audio();
-      a.preload = 'auto';
+      /* 'none' until the first gesture. The five files are 130 kB that cannot
+         make a sound before someone taps, so none of it belongs in the page
+         load; unlock() raises this to 'auto' and primes, which is what
+         actually starts the fetch. */
+      a.preload = 'none';
       a.src = FILES[name];
       a.addEventListener('error', function () { pool[name] = null; });
       pool[name] = a;
@@ -33,6 +45,7 @@
     Object.keys(pool).forEach(function (name) {
       var a = pool[name];
       if (!a) return;
+      a.preload = 'auto';
       a.muted = true;
       var p = a.play();
       if (p && p.catch) p.catch(function () {});
@@ -54,7 +67,7 @@
 
   function setMuted(next) {
     muted = !!next;
-    localStorage.setItem(KEY, muted ? '1' : '0');
+    try { localStorage.setItem(KEY, muted ? '1' : '0'); } catch (e) { /* private mode */ }
     document.querySelectorAll('.mute').forEach(function (btn) {
       btn.setAttribute('aria-pressed', String(muted));
     });

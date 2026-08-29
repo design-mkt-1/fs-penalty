@@ -23,7 +23,7 @@
   }
 
   function fit() {
-    if (!fx) return;
+    if (!fx || !stage) return;
     var r = stage.getBoundingClientRect();
     if (!r.width || !r.height) return;
 

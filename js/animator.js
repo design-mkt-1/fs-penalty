@@ -316,7 +316,7 @@
      the toes for the fists, a sink onto the heels for the head drop.
 
      `hold` is how long he stays there before standing back up. game.js sizes
-     it to the beat it has: 900ms while the miss message is up, 1300 while the
+     it to the beat it has: 900ms while the miss message is up, 1200 while the
      confetti falls. */
   PoseAnimator.prototype.react = function (name, opts) {
     opts = opts || {};
