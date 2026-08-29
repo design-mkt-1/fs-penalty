@@ -220,16 +220,20 @@ def main():
         print('%-20s mirrored from %-18s %5.0f KB'
               % (name, base, os.path.getsize(dst) / 1024))
 
-    # The stadium plate keeps its background; it only needs resizing.
-    bg_path = os.path.join(RAW, '_raw-bg.png')
+    # The pitch plate keeps its background; it only needs resizing. 1800 wide,
+    # because the widest it is ever drawn is 3.9876 goal widths and the goal
+    # caps at 560px -- 2233 CSS pixels, which 1800 covers acceptably for a dark
+    # backdrop and covers outright on a phone. Anything larger is bytes nobody
+    # sees. The goal is painted into this plate; css/game.css measures it.
+    bg_path = os.path.join(RAW, '_raw-pitch-spot.png')
     if os.path.exists(bg_path):
         img = Image.open(bg_path).convert('RGB')
-        scale = 1400 / img.height
-        img = img.resize((round(img.width * scale), 1400), Image.LANCZOS)
-        dst = os.path.join(IMG, 'stadium.webp')
+        scale = 1800 / img.width
+        img = img.resize((1800, round(img.height * scale)), Image.LANCZOS)
+        dst = os.path.join(IMG, 'pitch-spot.webp')
         img.save(dst, 'WEBP', quality=82, method=6)
         print('%-20s %sx%-5s %19s %5.0f KB'
-              % ('stadium', img.width, img.height, '', os.path.getsize(dst) / 1024))
+              % ('pitch-spot', img.width, img.height, '', os.path.getsize(dst) / 1024))
 
 
 if __name__ == '__main__':

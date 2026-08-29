@@ -141,13 +141,12 @@
               window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
-  /* Where the net meets the grass, in stage pixels. The panel grid is inset
-     10.1% from the bottom of the goal artwork (css/game.css), so the goal
-     line sits just below that. The ball's shadow travels to here. */
+  /* Where the net meets the grass, in stage pixels. .goal is the painted
+     goal's box now and its bottom edge is the goal line itself, so this is
+     simply that edge -- it used to be 89.9% of the way down a sprite whose
+     bottom tenth was the net base. The ball's shadow travels to here. */
   function goalLine() {
-    var s = box();
-    var r = goalEl.getBoundingClientRect();
-    return r.top + r.height * 0.899 - s.top;
+    return goalEl.getBoundingClientRect().bottom - box().top;
   }
 
   /* ══ the ball bitmap ══════════════════════════════════════════
@@ -216,16 +215,18 @@
     ctx.restore();
   }
 
-  /* ══ camera shake and background parallax ═════════════════════
+  /* ══ camera shake ════════════════════════════════════════════
 
-     One variable, two planes. .goal reads --shake-x/y at 1x and .turf, the
-     near markings, at 1.4x, because the markings are closer to the camera
-     than the goal is and near things swing further. The stadium photo does
-     not move at all: at that distance it would not.
+     Two variables, one plane. It used to drive a parallax: the goal at 1x and
+     the drawn near markings at 1.4x, on the argument that near things swing
+     further. Those markings are in the photograph now, and so is the goal, so
+     there is nothing left to have a parallax against -- the plate, the goal,
+     the keeper and the caption all move together, which is what a camera
+     shake is.
 
-     Written on .pitch so both inherit it. .pitch itself has overflow:hidden
-     and must not be the thing that moves -- transforming the clipping box
-     would show its edges. */
+     Still written on .pitch, but .pitch is now the thing that moves:
+     css/game.css puts the two variables on its `translate`. It no longer
+     clips, so transforming it cannot show its edges. */
   function shake(ms, px) {
     if (reduced()) return;
     var pitch = document.querySelector('.pitch');
@@ -251,7 +252,7 @@
 
   /* ══ the net taking the shot ══════════════════════════════════
 
-     The net is part of goal.webp, a photograph, so it cannot deform. What
+     The net is painted into the pitch plate, so it cannot deform. What
      can be drawn over it is the light a stretched net catches: a bulge that
      punches out on impact and comes back with damped swings, plus short
      cords radiating from the strike point. 520ms, about how long a real net

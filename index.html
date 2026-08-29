@@ -63,23 +63,11 @@
 
     <!-- ── pitch ──────────────────────────────────────────────── -->
     <div class="pitch">
-      <div class="pitch__bg" role="presentation"></div>
-
-      <!-- Near-field pitch markings. The photo only carries the far end of
-           the ground, so a penalty taken here had no goal area, no spot and
-           no arc in front of it. These are drawn on a plane laid flat in 3D,
-           which means the browser does the perspective and it stays correct
-           at every screen size. See css/game.css. -->
-      <div class="pitch__lines" role="presentation">
-        <div class="turf">
-          <div class="turf__line turf__line--goal"></div>
-          <div class="turf__box turf__box--six"></div>
-        </div>
-      </div>
-
+      <!-- The goal is painted into the stadium plate, so this element draws
+           nothing: it is the geometry the panels, the keeper and the effects
+           are hung on, sized and placed to land exactly on the painted posts.
+           See the numbers in css/game.css. -->
       <div class="goal">
-        <div class="goal__frame" role="presentation"></div>
-
         <div class="panels" role="group" data-i18n-attr="aria-label:goal.aim">
           <button class="panel" type="button" data-cell="tl" data-mult="12"><span>×12</span></button>
           <button class="panel" type="button" data-cell="tc" data-mult="3"><span>×3</span></button>

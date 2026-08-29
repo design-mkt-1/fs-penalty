@@ -158,169 +158,91 @@
   outline-offset: 2px;
 }
 
-/* ══ pitch ════════════════════════════════════════════════════ */
+/* == pitch ==================================================== */
 
-/* The pitch is the only elastic row: it absorbs whatever the fixed rows
-   below leave over, so the stage total is always exactly 844. */
+/* The whole scene is one photograph now, the goal included, and everything
+   the game draws is hung off it. That is the change this section carries.
+
+   The old plate was shot from behind the far goal: its white lines are the
+   penalty area fifty metres away, so a goal drawn in the middle distance sat
+   on someone else's markings and no amount of CSS perspective could rescue
+   it. A near goal area was drawn on a plane tipped 80.2 degrees to make up
+   for it, and that plane is what read as wrong.
+
+   assets/img/pitch-spot.webp is now shot from the penalty spot: the goal, the
+   six-yard box and the arc are in the photograph, in one consistent
+   perspective, because one camera made all of them. Nothing is drawn on top
+   of them any more. */
 .pitch {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
   /* cqw and cqh on .goal below mean "of the pitch" because of this. */
   container: pitch / size;
 
-  /* One goal width, the unit the whole composition is measured in. A real
-     goal is 7.32m, so every marking below is a plain multiple of it:
-     the goal area is 18.32/7.32 = 2.503 wide, the penalty spot sits
-     11/7.32 = 1.503 out, and so on. */
+  /* The whole scene shakes together now -- plate, goal and keeper -- because
+     the goal is part of the plate. It used to be only the drawn markings that
+     moved, at 1.4x, which was a parallax between two things; there is one
+     thing now. js/fx.js writes the two variables. */
+  translate: var(--shake-x, 0px) var(--shake-y, 0px);
+
+  /* One goal width, still the unit the whole composition is measured in --
+     but measured off the photograph rather than off a sprite. In
+     pitch-spot.webp (1800x1201) the posts stand at x 674.3 and 1125.7, the
+     crossbar's top edge at y 476.8 and the goal line at y 639.0. So the goal
+     is 451.4 image pixels wide by 162.2 tall, and every number below is that
+     measurement divided by 451.4. */
   --gw: min(92cqw, 135cqh, 560px);
-  --goal-h: calc(var(--gw) * 466 / 900);
+  --goal-h: calc(var(--gw) * 248 / 690);
   --goal-base: calc(46.5% + var(--goal-h) / 2);
 }
 
-/* The stadium plate covers the whole stage, not just the pitch row, so the
-   ball and the tagline sit on grass rather than on a black band.
+/* The stadium plate. Sized and placed so the painted goal lands exactly on
+   .goal at every screen size: one goal width is 451.4 image pixels, so the
+   1800px-wide image is 3.9876 goal widths across and 2.6606 tall, and the
+   painted crossbar sits 1.0563 goal widths below its top edge.
 
-   It sits on a pseudo-element rather than on #stage itself for one reason:
-   #stage is the container, so container units written in its own declarations
-   would resolve against the viewport instead -- safe-area padding and all.
-   Inside ::before they mean what they say.
+   It hangs off .pitch rather than off #stage because .goal is placed in the
+   pitch's coordinates -- the two have to be measured in the same box or they
+   drift apart as the rows above and below flex. It overflows the pitch on
+   every side, which is why .pitch no longer clips; #stage still does.
 
-   Placed by landmark, not by percentage. stadium.webp is 781x1400 with its
-   grass starting .52 of the way down, and the drawn markings put the horizon
-   .403 goal-widths above the goal line, which works out at 40.5% of the stage
-   in every layout. So the photo's grass line is pinned to that same 40.5%,
-   and the two horizons agree instead of arguing.
-
-   The scale is max(124cqh, 179.3cqw), not cover: 179.3cqw is what covers the
-   width, and 124cqh is the smallest height that still leaves room to slide
-   the image up far enough to put the grass line at 40.5% while keeping the
-   bottom edge covered. In portrait that zooms in about a quarter and trims
-   the top of the floodlight towers, which the composition does not miss. */
-#stage::before {
+   The image was extended 300px at the bottom before export, stretched out of
+   its own last rows and faded off, so the foreground grass still reaches the
+   ball on a tall phone. The worst case measured is 2.49 goal widths of
+   height, at 430x932; there are 2.66. */
+.pitch::before {
   content: "";
   position: absolute;
-  inset: 0;
   z-index: -1;
-  background-image: url("../assets/img/stadium.webp");
-  background-repeat: no-repeat;
-  background-size: auto max(124cqh, 179.3cqw);
-  background-position-x: 50%;
-  background-position-y: calc(40.5cqh - max(64.5cqh, 93.2cqw));
-  background-color: var(--ink-950);
-}
-
-
-/* Two jobs. The vignette darkens the frame edges and keeps the goal the focal
-   point. The band above it sinks the photo's own white lines, which belong to
-   the far end of the ground and were cutting straight through the near
-   markings drawn below -- and it doubles as aerial haze, since ground that
-   far away really does go flat and dark. It stops at the goal line, so
-   everything drawn in front of the goal stays crisp. */
-.pitch__bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg,
-      transparent 22%,
-      rgba(4,4,6,.78) 40%,
-      rgba(4,4,6,.78) calc(var(--goal-base) - 3%),
-      transparent var(--goal-base)),
-    radial-gradient(120% 70% at 50% 46%, transparent 40%, rgba(4,4,6,.55) 100%);
-}
-
-/* ══ pitch markings ═══════════════════════════════════════════ */
-
-/* The photo only carries the far end of the ground -- its white lines are the
-   box 50-odd metres away -- so a penalty taken here had no goal area and no
-   spot in front of it, and the drawn goal read as floating over someone
-   else's markings.
-
-   These are drawn instead. They lie on a plane tipped flat with rotateX, so
-   the browser computes the perspective and it stays right at every size.
-
-   The numbers are not invented. Working back from the composition -- the goal
-   renders one goal-width across, its line sits .403 goal-widths below the
-   horizon -- puts the camera 17.1m out at 2.95m up, which is a focal length
-   of 2.34 goal-widths and a plane tipped 80.2 degrees. Everything else is a
-   real pitch measured in goals: the goal area is 18.32/7.32 = 2.503 wide by
-   5.5/7.32 = .751 deep, the penalty area is 40.32/7.32 = 5.508 across, and
-   the spot is 11/7.32 = 1.503 out. That model lands the spot exactly under
-   the ball, which is the check that it is right.
-
-   One honest cheat: the plane is squeezed to half width. This composition is
-   a telephoto one -- the goal fills the frame from 17m out, a 26 degree field
-   of view -- and at that focal length a true 18.32m goal area is two and a
-   half screens wide, so none of it would ever be seen. scaleX(.5) brings it
-   into frame while every proportion between the markings survives. The check
-   that the depth is still honest: the spot lands under the ball, within a
-   pixel, at every screen size.
-
-   The penalty area, its arc and its front edge are gone rather than squeezed.
-   Even halved they sit outside the frame, and from the spot you would not see
-   them anyway.
-
-   The penalty spot went too, for a different reason. The model puts it within
-   4px of the ball on a phone, which is what proved the depth was right -- but
-   the ball takes its position from the row it lives in, not from this plane,
-   so on a desktop the two drift 189px apart. A spot that far from the ball is
-   worse than no spot. */
-.pitch__lines {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  perspective: calc(var(--gw) * 2.34);
-  perspective-origin: 50% var(--goal-base);
-}
-
-/* Hinged along its far edge, which is the goal line. */
-.turf {
-  position: absolute;
   left: 50%;
-  top: var(--goal-base);
-  width: calc(var(--gw) * 8);
-  height: calc(var(--gw) * 2);
-  margin-left: calc(var(--gw) * -4);
-  transform-origin: 50% 0%;
-  transform: translate(calc(var(--shake-x, 0px) * 1.4),
-                       calc(var(--shake-y, 0px) * 1.4))
-             rotateX(80.2deg) scaleX(.5);
+  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 1.0563);
+  width: calc(var(--gw) * 3.9876);
+  height: calc(var(--gw) * 2.6606);
+  margin-left: calc(var(--gw) * -1.9938);
+  /* The vignette rides on the plate rather than on a layer of its own. It used
+     to be a separate element the size of .pitch, and in landscape the pitch is
+     only the left column -- so the vignette stopped dead at x 540 of an 844px
+     stage and drew a visible vertical edge across the grass. On the plate it
+     has nowhere to end that anyone can see. */
+  background:
+    radial-gradient(74% 64% at 50% 46%,
+      transparent 32%, rgba(3, 8, 6, .72) 100%),
+    url("../assets/img/pitch-spot.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
 }
 
-.turf__line,
-.turf__box {
-  position: absolute;
-  border: 0 solid rgba(255, 255, 255, .42);
-}
+/* == goal ===================================================== */
 
-/* Runs wider than the frame, the way a goal line does. */
-.turf__line--goal {
-  left: 0;
-  top: 0;
-  width: 100%;
-  border-top-width: calc(var(--gw) * .016);   /* halved again by scaleX */
-}
+/* Draws nothing. It is the painted goal's box, to the pixel: 690 x 248 of the
+   2752px render, centred on the image and so on the pitch, with its bottom
+   edge on the goal line. Everything the game shows inside the goal -- the
+   panels, the keeper, the strike ring -- is a percentage of this box, so all
+   of it stays registered to the photograph at any size.
 
-/* The goal area. No top edge -- the goal line already drew it. */
-.turf__box--six {
-  left: calc(50% - var(--gw) * 1.2515);
-  top: 0;
-  width: calc(var(--gw) * 2.503);
-  height: calc(var(--gw) * .751);
-  border-width: 0 calc(var(--gw) * .016) calc(var(--gw) * .016);
-}
-
-
-/* ══ goal ═════════════════════════════════════════════════════ */
-
-/* 360 x 186 keeps the 900x466 goal artwork at its native aspect ratio.
-   Vertically it is placed so the base of the posts lands at about stage y 485.
-   Measured off stadium.webp, the advertising hoardings run to stage y 428 and
-   the grass starts there, so anything higher reads as standing on the stands
-   rather than on the pitch. */
+   2.78:1 is close to a real goal's 7.32 by 2.44, which is 3.0. The sprite it
+   replaces was 1.93:1, which is why the old composition needed a keeper very
+   nearly as tall as the goal was wide. */
 .goal {
   position: absolute;
   left: 50%;
@@ -328,32 +250,10 @@
   transform: translate(-50%, -50%);
   z-index: 1;
   width: var(--gw);
-  aspect-ratio: 900 / 466;
+  aspect-ratio: 690 / 248;
   /* inline-size, not size: the labels and gaps below want cqw of the goal,
      and inline-size cannot fight the aspect-ratio that sets the height. */
   container: goal / inline-size;
-  filter: drop-shadow(0 0 22px rgba(154,79,254,.30));
-}
-
-/* Contact shadow, so the posts sit in the grass instead of hovering over it. */
-.goal::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -3%;
-  width: 104%;
-  height: 22px;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0,0,0,.62), transparent 78%);
-  filter: blur(3px);
-  pointer-events: none;
-}
-
-.goal__frame {
-  position: absolute;
-  inset: 0;
-  background: url("../assets/img/goal.webp") center / 100% 100% no-repeat;
 }
 
 /* ══ impact ═══════════════════════════════════════════════════ */
@@ -366,10 +266,10 @@
   position: absolute;
   z-index: 1;
   left: 50%;
-  bottom: -5%;
-  width: 26%;
+  bottom: -4%;
+  width: 19.5%;
   aspect-ratio: 3 / 1;
-  margin-left: -13%;
+  margin-left: -9.75%;
   translate: var(--dust-x, 0) 0;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(222, 236, 255, .42), transparent 70%);
@@ -402,9 +302,9 @@
   z-index: 4;
   left: var(--hit-x, 50%);
   top: var(--hit-y, 50%);
-  width: 26%;
+  width: 18%;
   aspect-ratio: 1;
-  margin: -13% 0 0 -13%;
+  margin: -9% 0 0 -9%;
   border-radius: 50%;
   background: radial-gradient(closest-side,
               transparent 56%,
@@ -450,8 +350,10 @@
 
 /* ══ multiplier panels — brandbook "glass plate" ══════════════ */
 
-/* Insets measured off goal.webp: the posts occupy the outer 3.3% on each side,
-   the crossbar the top 5.2%, and the net base the bottom 10.1%.
+/* Insets measured off the painted goal in pitch-spot.webp: each post is 11 of
+   the 690 pixels the goal is wide, so 1.6% a side; the crossbar is 8 of its
+   248 tall, so 3.2%; and the net meets the grass on the goal line itself,
+   which is the box's own bottom edge.
 
    No z-index here on purpose. .panels and .panel are both left free of a
    stacking context so their two halves -- the glass plate and the multiplier
@@ -459,7 +361,7 @@
    See .panel::before below. */
 .panels {
   position: absolute;
-  inset: 5.2% 3.3% 10.1%;
+  inset: 3.2% 1.6% 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -581,9 +483,9 @@
   position: absolute;
   z-index: 1;
   left: 50%;
-  bottom: -1.5%;
-  width: 34%;
-  height: 5.2%;
+  bottom: -3.5%;
+  width: 25.5%;
+  height: 7.5%;
   pointer-events: none;
   opacity: .42;
   transform: translateX(-50%);
@@ -595,15 +497,21 @@
 }
 
 /* Every pose sprite shares one 429x640 canvas and one camera, so the element
-   is a fixed box and changing pose only swaps the background image. The idle
-   figure fills 80% of that canvas, which puts it at ~132px on stage. */
+   is a fixed box and changing pose only swaps the background image.
+
+   The three numbers are derived, not tuned. On keeper-idle.webp the figure
+   runs from .122 to .931 of the canvas height, so it is .809 of the box. A
+   1.88m keeper against a 2.44m goal is .770 of the goal's height, which makes
+   the box .770 / .809 = 95.24% of it; the canvas is 429/640, so the box is
+   22.95% of the goal's width. And his feet are at .931 of the box, so the box
+   hangs 6.57% of the goal's height below the goal line to stand him on it. */
 .keeper {
   position: absolute;
   z-index: 3;
   left: 50%;
-  bottom: -7%;
-  width: 30.6%;
-  height: 88.2%;
+  bottom: -6.57%;
+  width: 22.95%;
+  height: 95.24%;
   pointer-events: none;
   transform: translateX(-50%);
   transform-origin: 50% 100%;
