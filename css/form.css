@@ -76,19 +76,21 @@
   font-weight: 900;
 }
 
-.card .promo__pct { font-size: 76px; line-height: 1.05; letter-spacing: -.02em; }
+.card .promo__pct { font-size: 76px; line-height: 1.05; }
 
 .card .promo__stack {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   font-size: 30px;
   line-height: 1;
-  text-align: left;
 }
 
+/* Figma fixes this column at 100px, which is what "sport" and "bonus" happen
+   to measure at 30px. Left auto here: js/i18n.js translates both words. */
+
 .card .promo__sub {
-  margin-top: 4px;
   color: var(--promo);
   font-size: 22px;
   font-weight: 800;
@@ -137,7 +139,6 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: .04em;
 }
 
 .card .country {
@@ -153,14 +154,21 @@
 .card .country__flag {
   display: grid;
   place-items: center;
+  /* 30, not 26: Figma clips the 26x20 plate inside a 30px box, and that box
+     is what sets the picker's width -- 12 + 30 + 6 + 10 + 12 = 70. Sized off
+     the plate instead, the picker came out 66 and the phone field 4px wide. */
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+}
+
+.card .country__flag img {
   width: 26px;
   height: 20px;
-  overflow: hidden;
+  object-fit: cover;
   border-radius: 4px;
   background: #fff;
 }
-
-.card .country__flag img { width: 26px; height: 20px; object-fit: cover; }
 .card .country__caret { width: 10px; height: 6px; }
 
 .card .input {
@@ -253,8 +261,9 @@
 
 .card .cta:disabled,
 .card .cta[aria-disabled="true"] {
-  background: #17351f;
-  color: #5b6a5f;
+  background: rgba(48, 209, 88, .3);
+  color: #8e8e93;
+  opacity: .6;
   cursor: default;
   filter: none;
 }
@@ -266,16 +275,36 @@
   text-align: center;
 }
 
+/* Figma draws the whole line as one grey paragraph. The underline is ours
+   and stays: the link is the same colour as the sentence around it, so it is
+   the only thing that marks it as a link at all. */
 .card .foot a { color: var(--foot); text-decoration: underline; }
 
-/* ── complete state ───────────────────────────────────────── */
+/* ── complete state ──────────────────────────────────────────
+   Figma node 1:3427, "Device=Mobile, Tab=Phone, State=Complete". It is a
+   different card from the form step, not the same card with the middle
+   swapped: the background is 80% opaque rather than 50%, the sections are
+   24 apart rather than 18, and the summary box carries a border. */
 
-.card .card__step[data-step="done"] { align-items: stretch; text-align: center; gap: 14px; }
+/* The one state-dependent value on the shell. :has() rather than a class
+   because the step is already the source of truth -- js/form.js toggles
+   [hidden] on it, and a class would be a second thing to keep in step. */
+.card:has([data-step="done"]:not([hidden])) { background: rgba(18,18,20,.8); }
 
+.card .card__step[data-step="done"] {
+  align-items: stretch;
+  text-align: center;
+  gap: 24px;
+  /* The card contributes 12 top and 16 bottom; Figma wants 24 of each. */
+  padding: 12px 16px 8px;
+}
+
+/* Figma wraps the tick in a container with 24 above and 8 below. The 8 sits
+   on top of the 24 gap, so the title starts 32 below the tick. */
 .card .done__tick {
   width: 64px;
   height: 64px;
-  margin: 8px auto 0;
+  margin: 24px auto 8px;
   fill: none;
   stroke: var(--cta);
   stroke-width: 3.5;
@@ -283,35 +312,52 @@
   stroke-linejoin: round;
 }
 
-.card .done__title { font-size: 24px; font-weight: 700; color: #fff; }
-.card .done__sub { font-size: 15px; color: var(--foot); }
+/* Title and subtitle are one group in the design, 8 apart, not two children
+   of the 24 gap. */
+.card .done__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card .done__title { font-size: 24px; font-weight: 900; color: #fff; }
+.card .done__sub { font-size: 16px; font-weight: 500; color: var(--foot); }
 
 .card .done__box {
   display: grid;
   gap: 4px;
   padding: 16px;
-  border-radius: 12px;
+  border: 1px solid var(--card-brd);
+  border-radius: 14px;
   background: var(--field);
   text-align: left;
 }
 
 .card .done__box dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: .04em;
 }
 
 .card .done__box dd {
   color: #fff;
   font-size: 16px;
   font-weight: 500;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
 }
 
-.card .done__box dd:last-child { border-bottom: 0; padding-bottom: 0; }
-.card .done__box dt + dd { margin-bottom: 6px; }
+/* The rule between the two rows. Figma puts 12 on each side of it; the grid
+   gap already supplies 4 of the lower 12. */
+.card .done__box dd:not(:last-child) {
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--card-brd);
+}
+
+/* The masked password reads as a value, not as data: greyed in the design. */
+.card .done__pw { color: var(--muted); }
+
+/* 12 above the button, on top of the 24 gap. */
+.card .card__step[data-step="done"] .cta { margin-top: 12px; }
 
 /* ── focus ────────────────────────────────────────────────── */
 
