@@ -11,9 +11,8 @@
      that carry the character across to the panel he is covering.
 
      Percentages, not pixels: translate() resolves them against the element's
-     own size, and css/game.css sizes the keeper at 30.6% x 88.2% of the goal.
-     So a dive lands on the same panel whether the goal renders 260px wide or
-     560px. The numbers are the old stage pixels over the 110x164 box they
+     own size, and css/game.css sizes the keeper as a share of the goal. So a
+     dive lands on the same panel whether the goal renders 260px wide or 560. The numbers are the old stage pixels over the 110x164 box they
      were measured in -- -46px of 110 is -41.82%. */
   var POSES = {
     idle:             { x:      0, y:      0, scale: 1    },
@@ -22,13 +21,22 @@
     jump_R1:          { x:  36.36, y:  13.41, scale: 1    },  // low  right
     jump_R2:          { x:  41.82, y: -18.29, scale: 1    },  // high right
     jump_center:      { x:      0, y: -10.98, scale: 1.02 },  // high centre
-    jump_center_down: { x:      0, y:   4.88, scale: .96  }   // low  centre
+    jump_center_down: { x:      0, y:      0, scale: 1    },  // low  centre
+
+    /* Three poses that are not dives. They are drawn where they belong on the
+       shared canvas -- kneeling, standing, slumped -- so none of them needs a
+       translation; the tween only has to arrive on them. */
+    ready:            { x:      0, y:      0, scale: 1    },  // set, pre-shot
+    cheer:            { x:      0, y:      0, scale: 1    },  // saved it
+    beaten:           { x:      0, y:      0, scale: 1    }   // conceded
   };
 
-  /* Which file each pose shows. jump_center_down has no render of its own and
-     borrows the idle figure; it is told apart by a much deeper crouch in the
-     tween rather than by the picture. Kept here rather than only in CSS so
-     preload() has something real to fetch. */
+  /* Which file each pose shows. Kept here rather than only in CSS so
+     preload() has something real to fetch.
+
+     jump_center_down used to borrow the idle figure and be told apart by a
+     deeper crouch in the tween, which meant a low save down the middle was an
+     upright keeper nudged downwards. It has its own render now, kneeling. */
   var SPRITES = {
     idle:             'assets/img/keeper-idle.webp',
     jump_L1:          'assets/img/keeper-jump_L1.webp',
@@ -36,7 +44,10 @@
     jump_R1:          'assets/img/keeper-jump_R1.webp',
     jump_R2:          'assets/img/keeper-jump_R2.webp',
     jump_center:      'assets/img/keeper-jump_center.webp',
-    jump_center_down: 'assets/img/keeper-idle.webp'
+    jump_center_down: 'assets/img/keeper-jump_center_down.webp',
+    ready:            'assets/img/keeper-ready.webp',
+    cheer:            'assets/img/keeper-cheer.webp',
+    beaten:           'assets/img/keeper-beaten.webp'
   };
 
   /* The panel grid, column then row. */
@@ -92,7 +103,7 @@
   var TIMING = {
     duration: 560,   // ms, full speed
     soft:     200,   // ms, prefers-reduced-motion
-    coil:     0.18,  // weight is in the legs, sprite still the idle one
+    coil:     0.18,  // weight is in the legs, sprite is the set position
     swap:     0.22,  // the feet leave: the pose sprite changes on this frame
     launch:   0.44,  // most of the travel is done, body stretched thin
     hang:     0.76,  // the top of the arc, where a dive appears to float
@@ -106,6 +117,7 @@
     this.anim = null;
     this.shadowAnim = null;
     this.poseTimer = 0;
+    this.holdTimer = 0;
   }
 
   /* Pose sprites are plain CSS background-images on [data-pose]; the browser
@@ -206,6 +218,7 @@
     if (this.anim) this.anim.cancel();
     if (this.shadowAnim) this.shadowAnim.cancel();
     clearTimeout(this.poseTimer);
+    clearTimeout(this.holdTimer);
     el.classList.remove('is-idling');
 
     var frames;
@@ -216,13 +229,16 @@
         frame(p, 1, 0, 0, 1, 1, FEET)
       ];
     } else {
-      // Hold the idle sprite through the coil, swap as the feet leave.
+      // Two sprites, not one, before he even leaves the ground: the set
+      // position through the coil, then the dive as the feet leave. The coil
+      // used to be played on the idle figure, so the first third of every
+      // dive was a man standing still being squashed.
+      if (name !== 'idle') this.setPose('ready');
       this.poseTimer = setTimeout(function () { self.setPose(name); },
                                   duration * TIMING.swap);
 
       // A dive into the middle has nowhere to lean, so it buys its read from
-      // a deeper crouch instead. jump_center_down borrows the idle picture,
-      // so without this it is an idle keeper nudged downwards.
+      // a deeper crouch instead.
       var flat = p.x === 0;
       var lean = flat ? 0 : (p.x > 0 ? -3.5 : 3.5);
       var crouchY = flat ? 7.5 : 5.5;
@@ -276,6 +292,56 @@
     this.playShadow(p, duration, soft);
 
     if (opts.onComplete) this.anim.onfinish = opts.onComplete;
+    return this.anim;
+  };
+
+  /* The two reactions the dive sprites could never carry: he celebrates a
+     save, and he stands beaten after a goal. Both are their own render, so
+     the tween only has to arrive on them and give them some weight -- up onto
+     the toes for the fists, a sink onto the heels for the head drop.
+
+     `hold` is how long he stays there before standing back up. game.js sizes
+     it to the beat it has: 900ms while the miss message is up, 1300 while the
+     confetti falls. */
+  PoseAnimator.prototype.react = function (name, opts) {
+    opts = opts || {};
+    var el = this.el;
+    var self = this;
+    var p = POSES[name] || POSES.idle;
+    var soft = reduced();
+    var duration = soft ? TIMING.soft : 420;
+
+    if (this.anim) this.anim.cancel();
+    if (this.shadowAnim) this.shadowAnim.cancel();
+    clearTimeout(this.poseTimer);
+    clearTimeout(this.holdTimer);
+    el.classList.remove('is-idling');
+    this.setPose(name);
+
+    var frames = soft
+      ? [{}, frame(p, 1, 0, 0, 1, 1, FEET)]
+      : name === 'cheer'
+        // Onto the toes and back down: the pull of the fists has to go
+        // somewhere, and a celebration that only changes picture is a jump cut.
+        ? [Object.assign(frame(p, 1, 0, 0, 1.05, 0.94, FEET), { offset: 0, easing: EASE_IN }),
+           Object.assign(frame(p, 1, 3.4, 0, 0.97, 1.06, FEET), { offset: 0.32, easing: EASE }),
+           Object.assign(frame(p, 1, 0, 0, 1, 1, FEET), { offset: 1, easing: EASE })]
+        // Beaten: the weight arrives after he does, so he sinks rather than
+        // lands. Slower and shallower than the celebration, deliberately.
+        : [Object.assign(frame(p, 1, 2.6, 0, 1, 1, FEET), { offset: 0, easing: EASE }),
+           Object.assign(frame(p, 1, -0.8, 0, 1.02, 0.98, FEET), { offset: 0.6, easing: EASE }),
+           Object.assign(frame(p, 1, 0, 0, 1, 1, FEET), { offset: 1, easing: EASE })];
+
+    this.anim = el.animate(frames, {
+      duration: duration,
+      easing: 'linear',
+      fill: 'forwards'
+    });
+
+    this.playShadow(p, duration, soft);
+
+    this.holdTimer = setTimeout(function () { self.reset(); },
+                                duration + (opts.hold || 1200));
     return this.anim;
   };
 
@@ -356,6 +422,7 @@
       onComplete: function () {
         // Hand the transform back to CSS so the idle bob can resume.
         clearTimeout(self.poseTimer);
+        clearTimeout(self.holdTimer);
         if (self.anim) { self.anim.cancel(); self.anim = null; }
         if (self.shadowAnim) { self.shadowAnim.cancel(); self.shadowAnim = null; }
         el.classList.add('is-idling');

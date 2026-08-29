@@ -526,7 +526,10 @@
 .keeper[data-pose="jump_R1"]          { background-image: url("../assets/img/keeper-jump_R1.webp"); }
 .keeper[data-pose="jump_R2"]          { background-image: url("../assets/img/keeper-jump_R2.webp"); }
 .keeper[data-pose="jump_center"]      { background-image: url("../assets/img/keeper-jump_center.webp"); }
-.keeper[data-pose="jump_center_down"] { background-image: url("../assets/img/keeper-idle.webp"); }
+.keeper[data-pose="jump_center_down"] { background-image: url("../assets/img/keeper-jump_center_down.webp"); }
+.keeper[data-pose="ready"]            { background-image: url("../assets/img/keeper-ready.webp"); }
+.keeper[data-pose="cheer"]            { background-image: url("../assets/img/keeper-cheer.webp"); }
+.keeper[data-pose="beaten"]           { background-image: url("../assets/img/keeper-beaten.webp"); }
 
 /* Idle breathing. The class is removed while a dive plays, so the scripted
    animation in animator.js is never fighting these keyframes. */

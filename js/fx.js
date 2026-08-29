@@ -151,8 +151,26 @@
 
   /* ══ the ball bitmap ══════════════════════════════════════════
 
+     One revolution of a real sphere, 24 frames on a 6x4 sheet, rendered by
+     tools/ball_sheet.py: the panels are a spherical Voronoi over the 32 face
+     centres of a truncated icosahedron, which is what a football is, and the
+     shading is a light direction, a specular lobe and a rim sampled off the
+     surface normal. assets/img/ball.webp is frame 0 of the same render, so
+     the ball on the spot and the ball in flight are the same object.
+
+     The ball used to be that one still, turned in the screen plane with
+     ctx.rotate. A ball that spins like a wheel while it flies away from you
+     is the same tell as a ball that does not spin at all: the panels never
+     move over the surface, so nothing about it is round. These frames turn
+     about the sphere's own axis, and drawBall aligns that axis with the
+     trajectory.
+
      Decoded once. drawImage of an ImageBitmap skips the decode path an <img>
      can take, which matters when the trail draws it six times a frame. */
+
+  var BALL_FRAMES = 24;
+  var BALL_COLS = 6;
+  var BALL_CELL = 176;
 
   var ballArt = null;
 
@@ -166,25 +184,35 @@
         function ()    { ballArt = img; }
       );
     };
-    img.src = 'assets/img/ball.webp';
+    img.src = 'assets/img/ball-spin.webp';
   }
 
   /* r is the RADIUS AS DRAWN -- the resting radius already multiplied by the
      depth scale. Passing the resting radius instead draws a ball that never
-     recedes, which is exactly what a flat 2D sticker looks like. */
+     recedes, which is exactly what a flat 2D sticker looks like.
+
+     `spin` is radians of the ball's own rotation and picks the frame; `dir`
+     is the direction of travel, and everything is drawn in a frame rotated to
+     it. That does two jobs at once: the sheet's spin axis ends up square to
+     the trajectory, so the ball turns over along its flight rather than
+     rolling sideways, and the squash is along travel rather than along the
+     screen axes. */
   function drawBall(x, y, r, spin, sx, sy, dir, alpha) {
     if (!ballArt) return;
+
+    var f = Math.floor(spin / (Math.PI * 2) * BALL_FRAMES) % BALL_FRAMES;
+    if (f < 0) f += BALL_FRAMES;
+
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
-    if (sx !== 1 || sy !== 1) {
-      // Squash along the direction of travel, not along the screen axes.
-      ctx.rotate(dir);
-      ctx.scale(sx, sy);
-      ctx.rotate(-dir);
-    }
-    ctx.rotate(spin);
-    ctx.drawImage(ballArt, -r, -r, r * 2, r * 2);
+    ctx.rotate(dir);
+    if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+    ctx.drawImage(ballArt,
+                  (f % BALL_COLS) * BALL_CELL,
+                  Math.floor(f / BALL_COLS) * BALL_CELL,
+                  BALL_CELL, BALL_CELL,
+                  -r, -r, r * 2, r * 2);
     ctx.restore();
   }
 
@@ -340,7 +368,12 @@
     // multiplied by the depth scale when drawn, so the arc flattens as the
     // ball recedes exactly as a real one does.
     var lift = 58 * K;
-    var spinRate = (dx >= 0 ? 1 : -1) * 11.5;   // radians over the flight
+    // Radians of the ball's own rotation over the flight. 28 is 4.5 turns in
+    // 620ms, which is 7.3 a second -- what a struck penalty actually does.
+    // The sign is fixed, not taken from the direction any more: the axis is
+    // square to the trajectory now, so the sign is backspin against topspin
+    // rather than which way a wheel rolls.
+    var spinRate = 28;
 
     live(true);
     ballEl.classList.remove('is-bobbing');
@@ -461,7 +494,9 @@
 
         var a = t < 0.72 ? 1 : 1 - (t - 0.72) / 0.28;
         drawShadow(x, Math.max(floor, y + r), r0, s, y);
-        drawBall(x, y, r, spin, 1, 1, 0, a);
+        // Along the arc it is actually on, so it keeps turning over its own
+        // path through the bounce instead of about a fixed screen axis.
+        drawBall(x, y, r, spin, 1, 1, Math.atan2(vy, vx), a);
         return true;
       });
     });
@@ -494,7 +529,8 @@
       if (y + r > floor && vy > 0) { y = floor - r; vy = -vy * 0.24; }
 
       drawShadow(x, floor, state.r, s, y);
-      drawBall(x, y, r, spin, 1, 1, 0,
+      // Dropping, so the axis is across the fall: it rolls down the netting.
+      drawBall(x, y, r, spin, 1, 1, Math.PI / 2,
                t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3);
       return true;
     });

@@ -11,9 +11,11 @@ Two different keying strategies, because the subjects differ:
           either saturated (kit, gloves) or much brighter (white boots). The
           background predicate is flood-filled in from the frame edge, so
           achromatic parts *inside* the subject (black undershorts) survive.
-* magenta — the goal net is full of holes that show the background but are not
-          connected to the frame edge, so a flood fill would leave them opaque.
-          A global colour test is used instead, followed by a despill pass.
+* rgba  — the source already carries its alpha and only needs resizing.
+          The four poses added later are kept in raw/ already keyed, as
+          lossless WebP: the repo is public and every byte of raw/ is served
+          from it, and a keyed 1696x2528 RGBA WebP is 900 kB against the
+          3.7 MB the flat-grey PNG it came from costs.
 
 Usage:
     python tools/cutout.py
@@ -30,11 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMG = os.path.join(ROOT, 'assets', 'img')
 RAW = os.path.join(ROOT, 'raw')
 
-MAGENTA = np.array([158, 53, 131], dtype=np.int16)
-MAGENTA_TOLERANCE = 95
-
-# The net is high-frequency detail; it does not need the sprite default.
-QUALITY = {'goal': 80}
+QUALITY = {}
 
 # Keeper poses are exported on the FULL uncropped canvas. Every raw render
 # shares the same 1696x2528 frame and camera, so keeping the canvas keeps every
@@ -49,9 +47,17 @@ JOBS = {
     'keeper-jump_R2':     ('_raw-jump_R2.png',     'grey',    True,  False, 640, None),
     'keeper-jump_L1':     ('_raw-jump_L1.png',     'grey',    True,  False, 640, None),
     'keeper-jump_center': ('_raw-jump_center.png', 'grey',    True,  False, 640, None),
-    'ball':               ('_raw-ball.png',        'grey',    True,  True,  384, None),
-    'goal':               ('_raw-goal.png',        'magenta', False, True,  None, 900),
+
+    # Added later, and already keyed in raw/ -- see the module docstring.
+    'keeper-ready':       ('_raw-keeper-ready.webp',      'rgba', False, False, 640, None),
+    'keeper-cheer':       ('_raw-keeper-cheer.webp',      'rgba', False, False, 640, None),
+    'keeper-beaten':      ('_raw-keeper-beaten.webp',     'rgba', False, False, 640, None),
+    'keeper-jump_center_down': ('_raw-jump_center_down.webp', 'rgba', False, False, 640, None),
 }
+
+# The goal is no longer a sprite: it is painted into assets/img/pitch-spot.webp
+# and css/game.css measures it. The ball is no longer keyed out of a render
+# either -- tools/ball_sheet.py renders it and its rotation frames outright.
 
 # Sprites produced by mirroring another sprite rather than by generation.
 # The kit carries no asymmetric mark, so the flip is invisible.
@@ -95,22 +101,6 @@ def grey_background(rgb):
     return filled[1:-1, 1:-1] == 128
 
 
-def magenta_background(rgb):
-    a = rgb.astype(np.int32)
-    dist = np.sqrt(((a - MAGENTA) ** 2).sum(axis=2))
-    return dist < MAGENTA_TOLERANCE
-
-
-def despill_magenta(rgb, headroom=14):
-    """Pull the magenta cast off edge pixels without touching white or green."""
-    a = rgb.astype(np.int16)
-    r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    ceiling = g + headroom
-    a[..., 0] = np.minimum(r, ceiling)
-    a[..., 2] = np.minimum(b, ceiling)
-    return np.clip(a, 0, 255).astype(np.uint8)
-
-
 def shrink(mask, size):
     """Erode a boolean mask by `size` pixels."""
     img = Image.fromarray((mask * 255).astype(np.uint8), 'L').copy()
@@ -145,14 +135,15 @@ def largest_blob(fg):
 
 
 def cut(name, source, mode, keep_largest, trim, height, width):
-    src = Image.open(os.path.join(RAW, source)).convert('RGB')
-    rgb = np.asarray(src)
+    src = Image.open(os.path.join(RAW, source))
 
-    if mode == 'grey':
-        bg = grey_background(rgb)
-    else:
-        bg = magenta_background(rgb)
-        rgb = despill_magenta(rgb)
+    if mode == 'rgba':
+        out = src.convert('RGBA')
+        rgb = np.asarray(out)[..., :3]
+        return finish(name, out, rgb, trim, height, width)
+
+    rgb = np.asarray(src.convert('RGB'))
+    bg = grey_background(rgb)
 
     fg = ~bg
     if keep_largest:
@@ -170,6 +161,10 @@ def cut(name, source, mode, keep_largest, trim, height, width):
 
     out = Image.fromarray(rgb).convert('RGBA')
     out.putalpha(alpha)
+    return finish(name, out, rgb, trim, height, width)
+
+
+def finish(name, out, rgb, trim, height, width):
     box = out.getbbox()
     if trim:
         out = out.crop(box)

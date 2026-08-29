@@ -110,6 +110,10 @@
           // fired together, the net was never seen at all. The gap also reads
           // as a crowd taking a moment to realise.
           setTimeout(function () { FSFx.burst(centre(panel)); }, 180);
+          // He is still in the air when the ball crosses the line -- the dive
+          // runs to DIVE_DELAY + T.duration = 650ms and the ball arrives at
+          // 640. Let him land before he reacts to it.
+          setTimeout(function () { anim.react('beaten', { hold: 1200 }); }, 320);
           say(FSI18n.t('msg.goal'), 1400);
           return wait(1500);
         })
@@ -132,7 +136,9 @@
       .then(function () {
         say(FSI18n.t('msg.miss'), 1800);
         panel.classList.remove('is-armed');
-        anim.reset();
+        // He gets to enjoy it. react() stands him back up on its own once the
+        // hold is over, so nothing else has to call reset here.
+        anim.react('cheer', { hold: 900 });
         return FSFx.home(ball);
       })
       .then(function () {
