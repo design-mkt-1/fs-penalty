@@ -94,6 +94,11 @@
         <div class="keeper" data-pose="idle" role="presentation"></div>
         <div class="hit" aria-hidden="true"></div>
       </div>
+
+      <!-- ── transient message ────────────────────────────────── -->
+      <!-- Inside the pitch, not the stage: it is placed against the goal
+           line, and only in here does --goal-base mean anything. -->
+      <p class="msg" role="status" aria-live="polite" hidden></p>
     </div>
 
     <!-- ── ball ───────────────────────────────────────────────── -->
@@ -103,9 +108,6 @@
 
     <!-- ── ball in flight, shadows, net and confetti ──────────── -->
     <canvas class="fx" aria-hidden="true"></canvas>
-
-    <!-- ── transient message ──────────────────────────────────── -->
-    <p class="msg" role="status" aria-live="polite" hidden></p>
 
     <!-- ── registration overlay ───────────────────────────────── -->
     <!-- Figma mAJyDSaXdr9GO72b7FGvI8 · Registration Card 1:2823

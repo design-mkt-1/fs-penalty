@@ -385,29 +385,60 @@
   100% { opacity: 0;  transform: scale(1.9); }
 }
 
-/* Where the ball struck. A ring out of the contact point, so the shot lands
-   somewhere instead of simply stopping. */
+/* Where the ball struck. A flash at the contact point and a shock ring out
+   of it, so the shot lands somewhere instead of simply stopping.
+
+   The ring is a gradient, not a border, and that is the whole repair. A
+   border is a fixed number of pixels and transform: scale() shrinks it along
+   with everything else, so at the ring's brightest frame -- 12% in, scale .4
+   -- the old 2px border rendered 0.8px wide. Over the keeper's kit it could
+   not be seen at all; measured by pausing the animation there and looking.
+   A gradient ring keeps its share of the circle at every scale.
+
+   It stays in front of the keeper: .hit is z-index 4 against his 3, so the
+   two centre panels need nothing of their own. */
 .hit {
   position: absolute;
   z-index: 4;
   left: var(--hit-x, 50%);
   top: var(--hit-y, 50%);
-  width: 22%;
+  width: 26%;
   aspect-ratio: 1;
-  margin: -11% 0 0 -11%;
+  margin: -13% 0 0 -13%;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, .85);
-  box-shadow: 0 0 18px rgba(255, 255, 255, .35);
+  background: radial-gradient(closest-side,
+              transparent 56%,
+              rgba(255, 255, 255, .95) 72%,
+              rgba(255, 255, 255, 0) 90%);
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, .5));
   opacity: 0;
   pointer-events: none;
 }
 
+/* The strike itself. Bright, small and gone in a fifth of a second -- it is
+   the impact, not the aftermath, and the ring behind it carries the rest. */
+.hit::after {
+  content: "";
+  position: absolute;
+  inset: 28%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+              #fff, rgba(255, 255, 255, .6) 55%, transparent);
+  opacity: 0;
+}
+
 .hit.is-live { animation: hit 520ms var(--ease-out) forwards; }
+.hit.is-live::after { animation: hit-flash 200ms var(--ease-out) forwards; }
 
 @keyframes hit {
-  0%   { opacity: 0; transform: scale(.18); }
-  12%  { opacity: 1; transform: scale(.4); }
-  100% { opacity: 0; transform: scale(1.35); }
+  0%   { opacity: 0; transform: scale(.25); }
+  10%  { opacity: 1; transform: scale(.55); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes hit-flash {
+  0%   { opacity: .95; transform: scale(.55); }
+  100% { opacity: 0;   transform: scale(1.8); }
 }
 
 /* reset.css cuts every animation to 0.01ms under reduced motion, which would
@@ -420,11 +451,15 @@
 /* ══ multiplier panels — brandbook "glass plate" ══════════════ */
 
 /* Insets measured off goal.webp: the posts occupy the outer 3.3% on each side,
-   the crossbar the top 5.2%, and the net base the bottom 10.1%. */
+   the crossbar the top 5.2%, and the net base the bottom 10.1%.
+
+   No z-index here on purpose. .panels and .panel are both left free of a
+   stacking context so their two halves -- the glass plate and the multiplier
+   label -- can be ordered independently against the keeper, who renders at 3.
+   See .panel::before below. */
 .panels {
   position: absolute;
   inset: 5.2% 3.3% 10.1%;
-  z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -436,6 +471,25 @@
   position: relative;
   display: grid;
   place-items: center;
+  /* The gap the labels are held off the crossbar and the net base by. */
+  padding: clamp(6px, 2.4cqw, 15px) 0;
+  background: none;
+  border: 0;
+}
+
+/* The glass is on a pseudo-element rather than on the button, and that is
+   load-bearing rather than tidy. backdrop-filter makes an element a stacking
+   context, so while the plate lived on .panel nothing inside the button could
+   ever paint in front of the keeper -- and the keeper stands in the middle
+   column. Split in two, the plate sits behind him at 2 and the label in front
+   at 4. Anything added to .panel or .panels that forms a stacking context --
+   filter, opacity below 1, transform, will-change -- drops the labels back
+   behind him, which is why :active scales these two instead of the button. */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   border-radius: var(--r-md);
   border: 1px solid var(--glass-brd);
   background: var(--glass-bg);
@@ -445,7 +499,28 @@
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
+/* The labels retreat to the frame: the top row hugs the crossbar, the bottom
+   row the net base. One rule for all six, and it is the composition's own --
+   the keeper owns the middle of the goal, so nothing is written there.
+
+   It replaces two hand-tuned nudges: translateY(-4.4cqw) on every label to
+   clear his head, and +8.3cqw on the bottom-centre one to clear his boots.
+   Those left the three labels of a row sitting at unrelated heights, which is
+   what read as a patch.
+
+   The bottom-centre label is the one case with nowhere clear to retreat to.
+   Measured off keeper-idle.webp at the height it now sits, the keeper's
+   silhouette spans 43.4% to 56.9% of the goal and the label is 6.6% wide, so
+   it is over him whichever way it is moved. So it is not moved: z-index 4
+   puts every label in front of him (3). A target marker is interface, and
+   interface reads over the scene. */
+.panel[data-cell^="t"] { align-items: start; }
+.panel[data-cell^="b"] { align-items: end; }
+
 .panel span {
+  position: relative;
+  z-index: 4;
+  display: block;
   font-weight: var(--fw-black);
   font-size: clamp(14px, 5.6cqw, 30px);
   line-height: 1;
@@ -456,35 +531,31 @@
     0 2px 6px rgba(0,0,0,.75),
     0 0 14px rgba(0,0,0,.85),
     0 0 3px rgba(0,0,0,.9);
-  transform: translateY(-4.4cqw);   /* clear of the keeper's silhouette */
 }
 
-/* The keeper renders in front of the plates, so the two centre labels are
-   pushed to the edges of their cells: above his head, and between his boots. */
-.panel[data-cell="bc"] span { transform: translateY(8.3cqw); }
-
 /* The two ×12 corners get the colored glass plate treatment. */
-.panel[data-mult="12"] {
+.panel[data-mult="12"]::before {
   border-color: var(--glass-purple-brd);
   background: var(--glass-purple-bg);
 }
 .panel[data-mult="12"] span { color: var(--purple-200); }
 
 @media (hover: hover) {
-  .panel:hover {
+  .panel:hover::before {
     border-color: var(--accent);
     box-shadow: var(--glow-green), 0 2px 10px rgba(0,0,0,.28) inset;
   }
 }
 
-.panel:active { transform: scale(.97); }
+.panel:active::before,
+.panel:active span { transform: scale(.97); }
 
 .panel:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.panel.is-armed {
+.panel.is-armed::before {
   border-color: var(--accent);
   box-shadow: var(--glow-green);
 }
@@ -689,12 +760,23 @@
 
 /* ══ transient message ════════════════════════════════════════ */
 
+/* On the grass in front of the goal, the way a broadcast caption sits. It
+   used to be at top: 30% of the stage, which on this layout is 274px against
+   a crossbar at 301 -- so the one moment the visitor is being told to aim
+   again, the thing to aim at was under the message.
+
+   Placed against the goal line rather than at a percentage of the stage:
+   --goal-base is where the posts meet the grass, and --gw scales the offset
+   with the goal, so the caption keeps the same distance in front of it at
+   every size. It lives inside .pitch for exactly that reason -- outside it,
+   neither custom property exists. */
 .msg {
   position: absolute;
   z-index: 30;
   left: 50%;
-  top: 30%;
+  top: calc(var(--goal-base) + var(--gw) * .14);
   transform: translate(-50%, -50%) scale(.9);
+  max-width: min(88cqw, 520px);
   padding: 12px 22px;
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-brd);
@@ -704,9 +786,25 @@
   box-shadow: var(--glow-purple);
   font-weight: var(--fw-xbold);
   font-size: clamp(14px, 4.4cqw, 24px);
-  white-space: nowrap;
+  text-align: center;
+  text-wrap: balance;
   opacity: 0;
   transition: opacity .25s ease, transform .25s ease;
 }
 
 .msg.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+/* Landscape has no grass in front of the goal to sit on -- at 844x390 the
+   goal already ends at y 324 of 390 -- so the caption goes to the foot of the
+   pitch column instead, where it overlaps the net base rather than falling out
+   of the pitch and being clipped by its overflow. Same query as the layout
+   switch in css/stage.css. */
+@container viewport (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  .msg {
+    top: auto;
+    bottom: 3%;
+    transform: translate(-50%, 0) scale(.9);
+  }
+
+  .msg.is-visible { transform: translate(-50%, 0) scale(1); }
+}
