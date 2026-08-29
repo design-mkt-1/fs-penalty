@@ -28,10 +28,13 @@
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   opacity: 0;
-  transition: opacity .28s ease;
+  transition: opacity 160ms ease;
 }
 
-.sheet.is-open { opacity: 1; }
+/* Entry is slower than exit, the same rule the language menu follows: arriving
+   is worth watching, leaving is not. The duration lives on the open state so
+   the base rule is the exit. */
+.sheet.is-open { opacity: 1; transition-duration: 280ms; }
 
 /* ── card shell ───────────────────────────────────────────── */
 
@@ -51,10 +54,10 @@
   -webkit-backdrop-filter: blur(10px);
   font-family: "Roboto", system-ui, -apple-system, sans-serif;
   transform: translateY(14px) scale(.98);
-  transition: transform .3s cubic-bezier(.2,.9,.3,1);
+  transition: transform 180ms var(--ease-out);
 }
 
-.sheet.is-open .card { transform: none; }
+.sheet.is-open .card { transform: none; transition-duration: 300ms; }
 
 .card .card__step {
   display: flex;
@@ -119,7 +122,18 @@
   color: var(--muted);
   font-size: 14px;
   font-weight: 600;
+  /* The active pill used to appear instantly: green plate, black text, no
+     transition at all. Named properties rather than `all`, and `ease` because
+     this is a colour change rather than something entering. */
+  transition: background-color 160ms ease, color 160ms ease, scale 140ms var(--ease-out);
 }
+
+/* `scale`, not `transform`: it composes with anything a transform is already
+   doing and cannot be clobbered by one. Same reason the ball uses it. */
+.card .tab:active,
+.card .country:active { scale: .97; }
+
+.card .country { transition: scale 140ms var(--ease-out); }
 
 .card .tab__icon { width: 16px; height: 16px; opacity: .85; }
 
@@ -171,8 +185,14 @@
 }
 .card .country__caret { width: 10px; height: 6px; }
 
+/* `flex: 1 0 0` belongs to the phone row only, and putting it here was a
+   real defect rather than a tidiness one. The email field is a COLUMN, and in
+   a column flex-basis is the height: basis 0 beat `height: 44px` outright and
+   the field rendered 20px tall against the 44 of the select right below it.
+   Measured on the live page at 390 wide, and visible on a phone. */
+.card .row .input { flex: 1 0 0; }
+
 .card .input {
-  flex: 1 0 0;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -194,6 +214,11 @@
   font-weight: 500;
 }
 
+/* The design puts an 11px uppercase hint in the empty field -- "EMAIL
+   ADDRESS", styled like the label above the bonus select. These are format
+   hints at the value's own size instead ("you@example.com", "90 123 45 67"),
+   which is what the phone tab needs anyway and reads as something to type
+   rather than as a label sitting inside a box. js/i18n.js holds the strings. */
 .card .input input::placeholder { color: var(--muted); }
 
 .card .input:focus-within { border-color: var(--cta); }
@@ -204,7 +229,12 @@
   color: var(--err);
   font-size: 12px;
   font-weight: 500;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 160ms ease, transform 160ms var(--ease-out);
 }
+
+.card .err.is-shown { opacity: 1; transform: none; }
 
 .card .select {
   position: relative;

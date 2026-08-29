@@ -39,16 +39,33 @@
     });
   }
 
+  /* The error line fades rather than appearing. It used to be a plain
+     `hidden` toggle, so a failed submit snapped 22px of card into existence
+     with nothing to explain the movement.
+
+     Two steps, because reset.css forces [hidden] to display:none !important
+     and display cannot be transitioned: unhide one frame ahead of the class
+     going on, and take the class off one transition ahead of hiding. The
+     language menu and the registration card itself both do this already. */
+  var ERR_OUT = 160;
+  var errTimers = {};
+
   function clearError(f) {
     f.classList.remove('is-invalid');
     var e = f.querySelector('.err');
-    if (e) e.hidden = true;
+    if (!e || e.hidden) return;
+    e.classList.remove('is-shown');
+    clearTimeout(errTimers[e.id]);
+    errTimers[e.id] = setTimeout(function () { e.hidden = true; }, ERR_OUT);
   }
 
   function showError(f) {
     f.classList.add('is-invalid');
     var e = f.querySelector('.err');
-    if (e) e.hidden = false;
+    if (!e) return;
+    clearTimeout(errTimers[e.id]);
+    e.hidden = false;
+    nextFrame(function () { e.classList.add('is-shown'); });
   }
 
   function validate() {

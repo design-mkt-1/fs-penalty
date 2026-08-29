@@ -34,22 +34,34 @@
           <button class="lang" type="button" id="fs-lang-btn"
                   aria-haspopup="listbox" aria-expanded="false"
                   data-i18n-attr="aria-label:hdr.lang">
-            <img class="lang__flag" src="assets/img/icons/flag-gb.svg" alt="" width="20" height="15">
+            <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/>
+            </svg>
             <span class="lang__code">EN</span>
-            <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 15l6-6 6 6"/></svg>
+            <!-- Points down when the menu is shut. It was drawn pointing up, and the
+                 180deg rotation on [aria-expanded] then turned it down on open --
+                 the caret said the opposite of the state in both. -->
+            <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
           </button>
           <ul class="lang-menu" role="listbox" aria-labelledby="fs-lang-btn" hidden>
             <li class="lang-opt" role="option" data-lang="uz" tabindex="-1">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-uz.svg" alt="" width="22" height="16">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-uz.svg" alt="" width="24" height="18">
+              <span class="lang-opt__code">UZ</span>
               <span class="lang-opt__name"></span>
+              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
             </li>
             <li class="lang-opt" role="option" data-lang="ru" tabindex="-1">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-ru.svg" alt="" width="22" height="16">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-ru.svg" alt="" width="24" height="18">
+              <span class="lang-opt__code">RU</span>
               <span class="lang-opt__name"></span>
+              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
             </li>
             <li class="lang-opt" role="option" data-lang="en" tabindex="-1" aria-selected="true">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-gb.svg" alt="" width="22" height="16">
+              <img class="lang-opt__flag" src="assets/img/icons/flag-gb.svg" alt="" width="24" height="18">
+              <span class="lang-opt__code">EN</span>
               <span class="lang-opt__name"></span>
+              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
             </li>
           </ul>
         </div>

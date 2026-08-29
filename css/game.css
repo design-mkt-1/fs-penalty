@@ -19,28 +19,36 @@
 
 .hdr__right { display: flex; align-items: center; gap: 8px; }
 
+/* The header controls, from Figma 1:3797 "Header Mobile". They were 32px
+   pills with a 13px label; the design has them at 44 with a 16px one, which
+   is also the tap target size iOS asks for and the old ones missed by 12px. */
 .mute,
 .lang {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: var(--r-pill);
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
   border: 1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.05);
+  background: #3a3a3c;
   color: var(--text);
-  font-weight: var(--fw-bold);
-  font-size: 13px;
-  letter-spacing: .02em;
+  /* Roboto, not the display face. The design sets this in Inter Medium and
+     SemiBold; the Montserrat cut this project self-hosts starts at 700, so
+     every weight below that rendered as 700 and the header read as shouting.
+     Roboto is already hosted at 400-900 for the registration card. */
+  font-family: "Roboto", system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  transition: scale 140ms var(--ease-out);
 }
 
-.mute { width: 32px; padding: 0; justify-content: center; }
+.mute { width: 44px; padding: 0; justify-content: center; }
 
 .mute svg,
 .lang svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -53,9 +61,18 @@
 .mute[aria-pressed="true"] .mute__on { display: none; }
 .mute[aria-pressed="true"] .mute__off { display: block; }
 
-.lang { color: var(--accent); border-color: rgba(63,214,43,.4); }
+/* The green outline is the design's treatment for this trigger, and the label
+   is white against it rather than green -- the outline already says which
+   control it is, and a green label on a green outline says it twice. */
+.lang { border-color: #30d158; color: #fff; }
 .lang__caret { width: 14px; height: 14px; }
-/* ══ language menu ════════════════════════════════════════════ */
+
+/* Press feedback. They are buttons; they were behaving like labels. */
+.mute:active,
+.lang:active,
+.hdr__logo:active { scale: .95; }
+
+/* == language menu ============================================ */
 
 .lang-wrap { position: relative; }
 
@@ -63,24 +80,29 @@
 .lang[aria-expanded="true"] .lang__caret { transform: rotate(180deg); }
 
 /* Grows out of the button it hangs from, so it reads as coming from there
-   rather than appearing over the header. reset.css:27 forces [hidden] to
+   rather than appearing over the header. reset.css forces [hidden] to
    display:none !important, so display cannot be transitioned -- the open
    state is a class, and js/i18n.js unhides one frame ahead of it. Same
-   two-step the registration card uses. */
+   two-step the registration card uses.
+
+   The sizes are the design's: 286 wide, 14 radius, a hairline #38383a border
+   and a drop shadow, rather than the 136px frosted panel this used to be.
+   Rows run flush to the edges and are divided by hairlines, so there is no
+   padding here and no radius on a row. */
 .lang-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   z-index: 60;
-  min-width: 136px;
-  padding: 4px;
+  width: 286px;
+  max-width: calc(100cqw - 24px);
+  padding: 0;
+  overflow: hidden;
   list-style: none;
-  border-radius: var(--r-md);
-  border: 1px solid var(--glass-brd);
-  background: rgba(11, 11, 13, .94);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: 0 14px 34px rgba(0, 0, 0, .55);
+  border-radius: 14px;
+  border: .5px solid #38383a;
+  background: #2c2c2e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
   transform-origin: top right;
   opacity: 0;
   transform: translateY(-6px) scale(.96);
@@ -99,47 +121,59 @@
 .lang-opt {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 10px 9px 8px;
-  border-radius: var(--r-sm);
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
   color: var(--text);
-  font-size: 14px;
-  font-weight: var(--fw-bold);
+  font-family: "Roboto", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease;
 }
 
-/* Flags carry the meaning at a glance; the name beside them settles the
-   ambiguity a flag alone would leave (English is not a country). GB is the
-   convention for EN. Files and MIT licence in assets/img/icons/. */
-.lang__flag,
+.lang-opt + .lang-opt { border-top: .5px solid #38383a; }
+
+/* Flags carry the meaning at a glance; the code and the endonym beside them
+   settle the ambiguity a flag alone would leave -- English is not a country.
+   The design uses flag emoji, which draw differently on every platform; these
+   are the MIT SVGs in assets/img/icons/. GB is the convention for EN. */
 .lang-opt__flag {
   flex: 0 0 auto;
+  width: 24px;
+  height: 18px;
   border-radius: 2px;
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .22);
 }
 
-.lang__flag { width: 20px; height: 15px; }
-.lang-opt__flag { width: 22px; height: 16px; }
+/* #9a9aa0 rather than the design's #8e8e93, which is 4.3:1 on this
+   background. The same substitution the registration card documents. */
+.lang-opt__code {
+  flex: 0 0 32px;
+  color: #9a9aa0;
+  font-size: 15px;
+}
 
-/* A drawn tick rather than U+2713: that codepoint is outside the latin
-   subset of the Montserrat cut, so the glyph would arrive from a fallback. */
-.lang-opt::before {
-  content: "";
+.lang-opt__name { flex: 1 1 auto; color: #fff; }
+
+/* A drawn tick rather than U+2713: that codepoint is outside the latin subset
+   of the Montserrat cut, so the glyph would arrive from a fallback. */
+.lang-opt__check {
   flex: 0 0 auto;
-  width: 5px;
-  height: 9px;
-  margin: -3px 3px 0;
-  border: solid var(--accent);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   opacity: 0;
 }
 
-.lang-opt[aria-selected="true"] { color: var(--accent); }
-.lang-opt[aria-selected="true"]::before { opacity: 1; }
+.lang-opt[aria-selected="true"] { background: #3a3a3c; }
+.lang-opt[aria-selected="true"] .lang-opt__check { opacity: 1; }
 
 /* Arrow keys move focus through the list, so the focused option needs to be
    visible even when the menu was opened by tapping. */
@@ -566,8 +600,13 @@
   will-change: transform;
   background: url("../assets/img/ball.webp") center / 100% 100% no-repeat;
   filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(63,214,43,.35));
-  transition: filter .18s ease;
+  transition: filter .18s ease, scale 140ms var(--ease-out);
 }
+
+/* The largest tap target on the page had no press state at all. `scale`
+   rather than `transform`: the idle bob owns the transform, and a press that
+   the bob overwrites is a press that never happened. */
+.ball:active { scale: .95; }
 
 @media (hover: hover) {
   .ball:hover {

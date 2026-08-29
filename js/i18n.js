@@ -279,14 +279,12 @@
     if (!btn) return;
     btn.querySelector('.lang__code').textContent = lang.toUpperCase();
 
+    // The trigger carries a globe now, the way the design draws it, so there
+    // is no flag on it to keep in step with the choice -- only the code and
+    // which row shows its tick.
     options.forEach(function (o) {
-      var on = o.getAttribute('data-lang') === lang;
-      o.setAttribute('aria-selected', String(on));
-      if (on) {
-        var flag = btn.querySelector('.lang__flag');
-        var src = o.querySelector('.lang-opt__flag');
-        if (flag && src) flag.src = src.getAttribute('src');
-      }
+      o.setAttribute('aria-selected',
+                     String(o.getAttribute('data-lang') === lang));
     });
   }
 
