@@ -27,7 +27,7 @@ scores, and scoring opens the FanSport registration card.
 
 ## Two things only the repo owner can do
 
-### 1. The Pages source is wrong, and 28 MB leaks because of it
+### 1. The Pages source is wrong, and the whole repo leaks because of it
 
 **This is the one blocker.** Every push currently triggers *two* deployments
 that race each other:
@@ -37,7 +37,8 @@ that race each other:
 | `.github/workflows/pages.yml` (ours) | only `index.html`, `.nojekyll`, `css/`, `js/`, `assets/` |
 | `pages-build-deployment` (GitHub's built-in) | **the whole repo** |
 
-The built-in one is winning. Verified against the live URL on 2026-08-29:
+The built-in one is winning. Verified against the live URL on 2026-08-29,
+before that day's work replaced the artwork:
 
 ```
 raw/_raw-bg.png        200   6 219 457 bytes
@@ -46,17 +47,18 @@ docs/NEXT-SESSION.md   200
 tools/cutout.py        200
 ```
 
-`Last-Modified` matches the most recent deploy, so this is the current
-publish, not a stale cache. All 28 MB of `raw/` is being served on every
-visit that touches it.
+`Last-Modified` matched the most recent deploy, so that was the current
+publish and not a stale cache. Both of those files are gone now and `raw/` is
+down from 28 MB to about 12, but the leak is the same leak: everything in the
+repo is published, including `raw/`, `docs/` and `tools/`.
 
 **Fix:** GitHub → repo → Settings → Pages → *Build and deployment* →
 Source → **GitHub Actions**. That stops the built-in deployment and leaves
 only `pages.yml`. It is a repo setting, not code — no commit can fix it.
 
 Re-check afterwards: `curl -s -o /dev/null -w "%{http_code}"
-https://design-mkt-1.github.io/fs-penalty/raw/_raw-ball.png` must return
-**404**.
+https://design-mkt-1.github.io/fs-penalty/raw/_raw-keeper-idle.png` must
+return **404**.
 
 ### 2. Real-device testing
 
@@ -71,9 +73,12 @@ Android Chrome, over the live URL:
   two-column: goal left, words and ball right.
 * A phone with a notch — check the `env(safe-area-inset-*)` padding.
 * Pinch zoom works and does not break the layout.
-* **The keeper's dive.** Watched frame by frame on a desktop on 2026-08-29
-  (see item E) but never on a phone. Is 560ms too slow? Is the crouch
-  readable, or does it look like a stutter?
+* **The keeper's dive.** Watched frame by frame on a desktop but never on a
+  phone. Is 560ms too slow? Is the crouch readable, or does it look like a
+  stutter?
+* Everything listed under *What is next*, item B: the new pitch plate, the
+  ball's spin and the two new keeper reactions have only ever been seen on a
+  desktop.
 
 ---
 
@@ -89,9 +94,21 @@ Android Chrome, over the live URL:
   container queries on `#viewport`, not media queries, because safe-area
   padding means the stage and the window are different boxes.
 * **`--gw` is the unit.** `min(92cqw, 135cqh, 560px)`, declared on `.pitch`.
-  The goal is one `--gw` wide and every pitch marking is a multiple of it.
-  `FSStage.unit()` is the JS half of the same idea: the rendered goal width
-  over the 360px the hand-tuned distances were written against.
+  The goal is one `--gw` wide and the stadium plate is sized and placed in
+  multiples of it. `FSStage.unit()` is the JS half of the same idea: the
+  rendered goal width over the 360px the hand-tuned distances were written
+  against.
+* **The goal is in the photograph, and `.goal` draws nothing.** It is the
+  painted goal's box — 690 x 248 of the 2752px render — and the plate is
+  sized 3.9876 `--gw` across, 2.6606 tall, with its painted crossbar 1.0563
+  `--gw` below its top edge, so the two land on each other at every size.
+  Everything inside the goal is a percentage of that box. Change any of those
+  three numbers without re-measuring `pitch-spot.webp` and the panels come off
+  the posts.
+* **The keeper's three numbers are derived, not tuned.** His figure is .809 of
+  his sprite canvas and a 1.88m keeper is .770 of a 2.44m goal, which makes
+  his box 95.24% of the goal's height and 22.95% of its width, and puts it
+  6.57% below the goal line so his feet stand on it.
 * **`js/animator.js` — do not turn `WRONG_WAY` back into a hand-written
   table.** It is derived from the panel grid. The table it replaced sent the
   keeper onto the ball for a goal into the bottom-centre panel. Keeper poses
@@ -99,14 +116,20 @@ Android Chrome, over the live URL:
   size.
 * **Outcome is decided by attempt index in `js/game.js`**, never by the panel
   picked. `FSGame.reset()` puts both the stage state and the counter back.
+* **The ball is a sprite sheet, not a still.** 24 frames of one revolution of
+  a real sphere, rendered by `tools/ball_sheet.py`. `js/fx.js` picks the frame
+  from the rotation and draws it in a frame rotated to the direction of
+  travel, so the spin axis stays square to the trajectory.
 * **`js/i18n.js` holds every visible string.** Nothing user-facing lives in
   the markup or in game.js/form.js any more. A fourth language is one more
   object in `STRINGS` and nothing else.
 * **Type is self-hosted.** Six variable woff2 in `assets/fonts/`, one per
   unicode subset. Nothing is fetched from Google at runtime, and an English
   page pulls exactly one 37 kB file.
-* `tools/cutout.py` rebuilds `assets/img/*.webp` from `raw/`. Only needed if
-  the artwork changes.
+* `tools/cutout.py` rebuilds `assets/img/*.webp` from `raw/`; the four poses
+  added on 2026-08-29 are kept already keyed there, as lossless RGBA WebP, and
+  go through its `rgba` mode. `tools/ball_sheet.py` renders the ball outright.
+  Neither is needed unless the artwork changes.
 
 ---
 
@@ -134,7 +157,9 @@ Three findings worth keeping:
   (781 × 1400): the hoardings meet the grass 52% down, and the white lines at
   56% and 59.5% are the box at the *other* end of the ground. Drawing a near
   goal over them is what made the perspective read wrong. The near markings
-  are drawn now, on a plane tipped with `rotateX`.
+  were drawn on a plane tipped with `rotateX` to compensate. **Superseded on
+  2026-08-29:** that plate is gone, the drawn plane with it, and the
+  perspective comes from the photograph now. See below.
 * **A WAAPI iteration easing composes on top of the per-keyframe ones.** With
   a curve as strong as this project's, the whole dive was crushed into its
   first fifth — every frame after 21% measured identical. The effect easing
@@ -155,145 +180,104 @@ Three findings worth keeping:
 
 ---
 
+## What was done, 2026-08-29
+
+Five commits, all on `main`.
+
+| Commit | What |
+|---|---|
+| `cbcc570` | The dust and the landing jolt stopped firing in mid-air; the net bulge made visible |
+| `2903d92` | The multiplier labels, the hitmark and the message box — item C |
+| `1ca2928` | The registration card brought back to its Figma node, value by value — item D |
+| `b2e9b6a` | A new stadium plate, shot from the penalty spot, with the goal in it |
+| `ac0a8a4` | A spinning ball rendered as a real sphere, and four more keeper poses |
+
+Three findings worth keeping:
+
+* **A `backdrop-filter` is a stacking context.** While the glass plate lived
+  on `.panel`, nothing inside the button could ever paint in front of the
+  keeper — and the keeper stands in the middle column, so the bottom-centre
+  `×3` was behind him with nowhere to move to. Measured off
+  `keeper-idle.webp`, his silhouette spans 43.4% to 56.9% of the goal at that
+  height and the label is 6.6% wide. The plate is on `.panel::before` now, at
+  z-index 2; the label is at 4.
+* **`transform: scale()` shrinks a border along with everything else.** The
+  hitmark ring was a 2px border and its keyframes scale it, so at its
+  brightest frame — 12% in, scale .4 — it rendered 0.8px wide. Paused there
+  over the keeper's kit, nothing was visible at all. It is a gradient ring
+  now, which keeps its share of the circle at every scale.
+* **The old plate was the wrong end of the ground, and no CSS could fix it.**
+  Its white lines are the penalty area fifty metres away. Everything drawn to
+  compensate — a near goal area on a plane tipped 80.2 degrees, squeezed to
+  half width to bring it into frame — was compensating for a photograph that
+  could not be made to agree.
+
+### Decisions taken
+
+| Topic | Decision |
+|---|---|
+| The background | Generated, not sourced. One plate shot from the penalty spot, carrying the goal, the six-yard box and the arc, so one camera makes all of them |
+| `goal.webp` | Deleted. 312 kB of sprite the plate now carries itself |
+| The panel labels | Retreat to the frame — top row to the crossbar, bottom row to the net base — and render in front of the keeper. No per-cell nudges |
+| Keeper art | Generated against the existing sprite as a character reference, so the kit, the face and the camera match |
+| `raw/` for new art | Kept already keyed, as lossless RGBA WebP: 900 kB against 3.7 MB, and `raw/` is served publicly until item A is done |
+| Card colours | `--muted` stays `#9a9aa0` against the design's `#8e8e93`, which is 4.3:1 on the field background, and the "Log in" link keeps its underline |
+
+---
+
 ## What is next
 
-In order. Items A and B need the repo owner; C onward is code.
+In order. Item A needs the repo owner; the rest is work.
 
 ### A. Set the Pages source to GitHub Actions
 
-See *Two things only the repo owner can do* above. Everything else can
-proceed without it, but the site serves 28 MB it should not until it is done.
+See *Two things only the repo owner can do* above. Still not done, and still
+the only blocker: `raw/` is served on every visit. It is smaller than it was
+— the goal's render and the ball's are gone, and the new poses are keyed
+WebP — but ~12 MB of it should not be public at all.
 
-### B. Review the UZ and RU strings, and test on a real phone
+Re-check afterwards: `curl -s -o /dev/null -w "%{http_code}"
+https://design-mkt-1.github.io/fs-penalty/raw/_raw-keeper-idle.png` must
+return **404**.
 
-The translations went live unreviewed, at the owner's call, to get a testable
-link out. They are in `js/i18n.js` — 33 keys per locale. The Uzbek follows the
-original Figma card, which was written in Uzbek, rather than translating the
-English back.
+### B. Real-device testing — everything below is desktop-verified only
 
-Worth a second look in particular:
+Nothing added on 2026-08-29 was seen on a phone. The standing checklist is
+under *Two things only the repo owner can do* above; these are the new things
+it does not cover:
 
-| Key | UZ | RU |
-|---|---|---|
-| `msg.miss` | Ozgina qoldi! Yana urinib koʻring | Так близко! Ещё попытка |
-| `promo.sub` | yoki (AMOUNT) gacha + 150 FS | или до (AMOUNT) + 150 FS |
-| `cta.website` | SAYTGA OʻTISH | ПЕРЕЙТИ НА САЙТ |
-| `foot.have` | Akkauntingiz bormi? | Уже есть аккаунт? |
+* **The new plate.** It is 1800px wide and drawn up to 2233 CSS px on a
+  desktop; on a phone it is drawn at about 1430 and should be sharp. Check
+  that the foreground grass still reaches the ball — the extension at the
+  bottom of the image is sized for 2.49 goal widths and there are 2.66, but
+  that was calculated, not seen.
+* **The ball's spin.** 4.5 turns in 620ms is 7.3 a second, and a 24-frame
+  sheet at 60fps advances 2.9 frames a tick, which the motion blur covers on
+  a desktop. A low-end phone at 30fps advances 5.8 — a quarter turn a frame
+  — and it may strobe.
+* **The two new reactions.** `cheer` holds for 900ms while the miss message is
+  up, `beaten` for 1200 while the confetti falls. Both were verified to fire
+  and to stand him back up; neither was watched at speed.
 
-### C. The goal panels — labels, hitmark, message box
+### C. The dive offsets against the new goal
 
-The multiplier labels are inside the panels but shoved clear of the keeper
-with `transform: translateY(-4.4cqw)` and `translateY(8.3cqw)`
-(`css/game.css`). It works, but it reads as the patch it is.
+`POSES` in `js/animator.js` still carries the offsets measured against the old
+1.93:1 goal, as percentages of the keeper's own box. That box changed shape
+when the goal did, so each dive should be re-checked against the panel it is
+supposed to cover: `jump_L2` on the top-left plate, `jump_R1` on the
+bottom-right, and so on, at 1912 × 914 and at 360 × 640.
 
-* Rework how ×2 / ×3 / ×12 sit in their panels so they do not need the nudge.
-* The hitmark exists — `.hit` in `css/game.css`, a ring at the strike point,
-  fired by `mark(panel)` in `js/game.js`. Check whether it reads at speed
-  and whether the two centre panels need something different, since the
-  keeper stands in front of them.
-* The message box `.msg` sits at `top: 30%` of the stage, floating over the
-  goal. Decide where it belongs now that the layout is fluid.
+### D. The idle loop
 
-### D. The registration card against Figma
+He breathes, and between shots that is all he does. There are three sprites
+now that are not dives and only two of them are used. The set position could
+play on hover or focus of a panel rather than only inside the dive, which
+would make the goal read as something being aimed at rather than clicked.
 
-File `mAJyDSaXdr9GO72b7FGvI8`, node `1:2823`, named in a comment in
-`index.html`. Pull it through the Figma MCP server and compare value by
-value rather than by eye. The card was built from that node but has drifted —
-and two of its colours changed for contrast (`--muted` is `#9a9aa0`, the
-placeholder now uses it too).
+### E. Sound for the new beats
 
-### E. Feel-check the rebuilt animation — branch `feat/game-feel`
-
-The rebuild from `d0a5081` **has now been watched**, on 2026-08-29, in a
-foreground tab at 1912 x 867. Two defects came out of it and are fixed; the
-rest of the list is what a real phone still has to answer.
-
-How it was watched, because the method is reusable: the page cannot be
-screenshotted fast enough to catch a 620ms flight, so instead
-`window.requestAnimationFrame` was swapped for a no-op and every
-`document.getAnimations()` entry paused, on a `setTimeout` at a chosen
-millisecond. That freezes the canvas mid-paint and the dive mid-tween, and
-the frame can then be inspected at leisure. Freezing at 668ms landed 28ms
-into the net bulge, its peak, within 1ms of the request. Separately, pausing
-just the two keeper animations and writing `currentTime` steps the dive to
-any offset with no timing luck at all.
-
-#### Fixed
-
-**The dust plume and the landing jolt fired in mid-air.** Three of the six
-poses end above the standing line — `jump_L2`, `jump_R2` and `jump_center`,
-the ones with a negative `POSES[..].y`. game.js fired both off `TIMING.land`
-for every dive, so on those three the grass puffed at the goal line and the
-camera shook for an impact that never happened: measured on `jump_L2` at
-`land`, the keeper's feet were at y 548 against 591 standing — 43px up, and
-23px clear of the goal's own bottom edge at 571. `jump_L1` at the same frame
-sits at 634, which is 42px *below* the line, on the grass, as it should be.
-
-The animator now answers the question instead of game.js assuming it:
-`PoseAnimator.impact(pose)` returns the frame, the place and the force. A
-high dive's only contact with the grass is the push-off, so it takes
-`TIMING.swap`, `--dust-x: 0%` and a softer 1.6; a low dive keeps `land`, the
-landing offset and 2.6.
-
-**The net bulge was never visible.** `reach` was `r * 3.4`, and `r` is the
-ball as drawn on the net — about 16px on a 1912px stage, since the flight
-ends at `S_END` of the kicked size. That put the bulge at 1.43 ball radii at
-rest and 2.1 at its peak, so the bright half of the gradient sat underneath
-the ball that `intoNet` paints on the same frame. The eight cords ran from
-0.30 to 0.82 of that radius — also under the ball. And `burst()` fired in
-the same statement, dropping 110 confetti bits on the strike point while the
-bulge was still opening.
-
-Three changes: `reach` is `r * 6.5`, the decay is `exp(-2.6 t)` from `0.34`
-rather than `exp(-3.1 t)` from `0.30` so it rings down across the whole
-520ms instead of being spent in the first 150, and the confetti waits 180ms.
-The bulge now reads as an oval of light with cords, out to about the panel
-edge, with the ball sitting in the middle of it.
-
-#### Still only a real phone can answer
-
-* Is 620ms of flight too fast to read? The ball leaves at full speed now —
-  the old smoothstep hid this by starting slow.
-* Does the `hang` float or hover? Measured: 570px/s through the launch
-  (0.22 → 0.44), then 156px/s through the hang (0.44 → 0.76). It is 3.6x
-  slower, which is a float by construction; whether 180ms of it is too long
-  is an eye question.
-* Is the 12° body roll too much for a sprite that already carries its angle?
-* Is the parallax on `.turf` (1.4x the goal's shake) visible or wasted?
-* A low-end phone. The heaviest frame costs 0.1ms median / 0.5ms worst on a
-  1912x914 desktop canvas against a 16.7ms budget; that number means nothing
-  about a cheap Android.
-
-Where the dials are:
-
-| Thing | File | Dial |
-|---|---|---|
-| Ball flight, perspective, shadow, motion blur | `js/fx.js` | `S_END` (0.30) governs both speed and size; `lift` (58) is the arc |
-| Save deflection, net bulge, camera shake, confetti | `js/fx.js` | `deflect()`, `netBulge()`, `shake()` |
-| The dive | `js/animator.js` | `TIMING` — duration 560, coil .18, swap .22, launch .44, hang .76, land .90 |
-| Which frame the dust and jolt fire on | `js/animator.js` | `PoseAnimator.impact()` |
-| Keeper shadow | `css/game.css` `.keeper-shadow` | width 34%, `bottom: -1.5%` |
-
-What was verified numerically and still holds:
-
-* The ball lands **0.0000px** from the panel centre, all six panels, at
-  1912x914 and at 360x640.
-* Mid-flight the ball spans y 462–522 on the canvas at alpha 255 and its
-  shadow y 664–684 at alpha 48 — 142px of separation, the height cue.
-* `prefers-reduced-motion` still flies the ball and still lands it exactly;
-  only the trail, shake, bulge and confetti drop out.
-
-Three long-standing defects were fixed on the way in `d0a5081`, and are
-worth not reintroducing: `preload()` read `getComputedStyle().backgroundImage`,
-which never fetches anything; `game.js` restated the dive timing as
-`90 + 540 * 0.84`, so retuning the dive desynced the dust; and `play()`
-forced a synchronous layout on every dive.
-
-#### Confirmed, and still open — see item C
-
-At rest the bottom-centre `×3` label is completely behind the keeper. That
-is the patch item C already describes, not a new defect.
-
+`assets/audio/` has `kick`, `save`, `net`, `cheer` and `whistle`. The
+celebration and the head drop have no sound of their own.
 
 ## Verification
 
@@ -323,3 +307,7 @@ Serve locally with `python -m http.server 8000`, then:
    matching `fonts.googleapis|gstatic`, and one woff2 on first paint.
 8. **After pushing** — the Actions run is green, the live URL serves the
    change, and `raw/` returns **404**. It does not today; see item A.
+9. **The goal is on the goal** — at any viewport the six panels sit inside
+   the painted posts and the keeper's boots sit on the painted goal line. If
+   they drift, the three plate numbers in `css/game.css` have stopped agreeing
+   with the measurement of `pitch-spot.webp`.

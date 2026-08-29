@@ -18,19 +18,22 @@ index.html
 css/
   reset.css     normalise
   tokens.css    FanSport palette and type scale, from the brandbook
-  stage.css     fixed viewport, zero-scroll, scale-to-fit
-  game.css      pitch, goal, glass plates, keeper, ball, tagline
+  stage.css     fluid zero-scroll shell, safe area, landscape layout
+  game.css      pitch plate, goal geometry, glass plates, keeper, ball, tagline
   form.css      registration card
 js/
-  stage.js      viewport fit, safe-area, soft-keyboard handling
+  stage.js      canvas fit, safe-area, soft-keyboard handling
   audio.js      SFX pool, mute toggle
   animator.js   CharacterAnimator interface + PoseAnimator
-  game.js       state machine, ball flight, celebration
+  fx.js         ball flight, shadows, motion blur, net, shake, confetti
+  i18n.js       every visible string, UZ / RU / EN
+  game.js       state machine, the two scripted shots
   form.js       tab switch, validation, complete state
   main.js       boot
 assets/img/     shipped artwork (WebP) and Figma exports (SVG)
-raw/            uncompressed source renders — NOT deployed (~28 MB)
-tools/cutout.py rebuilds assets/img from raw/
+raw/            source renders — NOT deployed (~12 MB)
+tools/cutout.py     rebuilds assets/img from raw/
+tools/ball_sheet.py renders the ball and its rotation frames outright
 ```
 
 ## The no-scroll rule
@@ -38,12 +41,12 @@ tools/cutout.py rebuilds assets/img from raw/
 The page must never scroll on a phone. That is enforced structurally, not with
 patches:
 
-* The stage is a fixed **390 × 844** logical canvas. `stage.js` computes
-  `scale = min(vw/390, vh/844)` and applies it as a transform, so internal
-  layout never depends on the real viewport.
+* The stage **is** the viewport. There used to be a fixed 390 × 844 canvas
+  scaled with a transform; it is gone. `#viewport` and `#stage` are query
+  containers and everything inside sizes itself in `cqw` / `cqh`.
 * `html, body` are `position: fixed; overflow: hidden; overscroll-behavior: none`.
 * The stage is a flex column: header and ball row are fixed, the pitch is the
-  only elastic row, so the total is always exactly 844.
+  only elastic row, so it absorbs whatever is left over.
 * The registration card is an overlay that scrolls *inside itself* when the soft
   keyboard shrinks the visual viewport. A `visualViewport.resize` listener
   re-runs the fit.
@@ -59,10 +62,12 @@ Tapping the **ball** is the "surprise me" shot: it picks one of the six panels
 at random and shoots there. It is a real `<button>`, so it is keyboard
 reachable and announced, and it runs through exactly the same scripted outcome.
 
-The goal is placed so the base of the posts lands at about stage y 485.
-Measured off `stadium.webp`, the advertising hoardings run down to stage y 428
-and the grass starts there — anything higher reads as standing on the stands
-rather than on the pitch. A contact shadow under the posts plants it.
+The goal is not a sprite. `assets/img/pitch-spot.webp` is photographed from the
+penalty spot and the goal, the six-yard box and the arc are all in it, in one
+perspective. `.goal` is that painted goal's box and draws nothing: the plate is
+sized and offset off `--gw` by three measured numbers so the two land on each
+other at every screen size, and the panels, the keeper and the effects are
+percentages of the box. `css/game.css` carries the measurements.
 
 ## Animation
 
@@ -73,8 +78,16 @@ production use. Instead `animator.js` exposes a small interface —
 discrete pose sprites and translates them with the Web Animations API.
 
 Pose names mirror the reference rig (`idle`, `jump_L1`, `jump_L2`, `jump_R1`,
-`jump_R2`, `jump_center`) so a real Spine skeleton can be dropped in behind the
-same interface without touching `game.js`.
+`jump_R2`, `jump_center`, `jump_center_down`) so a real Spine skeleton can be
+dropped in behind the same interface without touching `game.js`. Three more are
+not dives: `ready` is the set position and plays through the coil of every one,
+and `cheer` and `beaten` are the reactions `PoseAnimator.react()` holds after a
+save and after a goal.
+
+The ball is a 24-frame sprite sheet of one revolution of a real sphere, rendered
+by `tools/ball_sheet.py`. `js/fx.js` picks the frame from the rotation and draws
+it in a frame rotated to the direction of travel, so the spin axis is square to
+the trajectory and the ball turns over along its own flight.
 
 L and R are from the **viewer's** point of view, matching the panel columns.
 
@@ -88,15 +101,19 @@ hallucinated, trims, downscales and writes WebP.
 python tools/cutout.py
 ```
 
-Two keying strategies, because the subjects differ:
+Two modes:
 
-* **grey** (keeper poses, ball) — the backdrop is achromatic and mid-bright
-  while the subject is either saturated or much brighter. The background
-  predicate is flood-filled in from the frame edge, so achromatic parts *inside*
-  the subject survive.
-* **magenta** (goal) — the net is full of holes that show the backdrop but are
-  not connected to the frame edge, so a flood fill would leave them opaque. A
-  global colour test is used instead, followed by a despill pass.
+* **grey** — the backdrop is achromatic and mid-bright while the subject is
+  either saturated or much brighter. The background predicate is flood-filled in
+  from the frame edge, so achromatic parts *inside* the subject survive.
+* **rgba** — the source is already keyed and only needs resizing. The four poses
+  added later are kept in `raw/` that way, as lossless RGBA WebP: the repo is
+  public and every byte of `raw/` is served from it, and a keyed render is
+  900 kB against the 3.7 MB its flat-grey PNG cost.
+
+The ball no longer goes through this script at all, and neither does the goal:
+`tools/ball_sheet.py` renders the ball, and the goal is painted into the pitch
+plate.
 
 Keeper poses are exported on the **full uncropped canvas**. Every raw render
 shares one camera, so keeping the canvas keeps every pose in one coordinate
@@ -110,8 +127,9 @@ rather than separate generations — the kit carries no asymmetric mark.
 
 * Brandbook, logo, registration card and header: Figma `mAJyDSaXdr9GO72b7FGvI8`
   (Registration Card `1:2823`, Header Mobile `1:3797`, Logo `1:427`).
-* Signature font **Alan Sans**; the registration card follows its own design and
-  uses Roboto.
+* Display face **Montserrat**, self-hosted. It replaced Alan Sans, which Google
+  serves in latin, latin-ext and arabic only — the Russian locale would have had
+  no glyphs at all. The registration card follows its own design and uses Roboto.
 * Primary green `#3FD62B`, secondary purple `#9A4FFE`.
 
 ## Audio
@@ -123,9 +141,9 @@ missing file: that one effect simply never plays.
 
 ## Picking the work back up
 
-`docs/NEXT-SESSION.md` is the handoff document: four confirmed defects with the
-evidence that reproduced them, the decisions already taken, and the verification
-steps. Start there.
+`docs/NEXT-SESSION.md` is the handoff document: what stands, what was measured
+to establish it, the decisions already taken, and the verification steps. Say
+**"start"** and it means read that file and continue from *What is next*.
 
 ## Known gaps
 
@@ -133,4 +151,5 @@ steps. Start there.
   ever submitted. The offer amount is the `(AMOUNT)` placeholder from the design.
 * The country picker is display-only and fixed to the `+998` dial code shown in
   the Figma mock.
-* The language selector renders but is inert; all copy is English.
+* The UZ and RU strings in `js/i18n.js` went live unreviewed, at the owner's
+  call, to get a testable link out.
