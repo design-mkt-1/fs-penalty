@@ -192,7 +192,7 @@ Seven commits, all on `main`.
 | `b2e9b6a` | A new stadium plate, shot from the penalty spot, with the goal in it |
 | `ac0a8a4` | A spinning ball rendered as a real sphere, and four more keeper poses |
 | `3edce13` | This handoff and the README caught up |
-| (next) | The dive offsets recalibrated to the new goal |
+| `ef2fd10` | The dive offsets recalibrated to the new goal |
 
 Four findings worth keeping:
 
