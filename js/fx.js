@@ -260,7 +260,14 @@
     if (reduced()) return;
     var t0 = now();
     var life = 520;
-    var reach = r * 3.4;
+
+    /* `r` is the ball as drawn on the net -- about 16px on a 1912px stage,
+       since the flight ends at S_END of its kicked size. At 3.4 the bulge
+       measured 1.43 ball radii at rest and 2.1 at its peak, so the whole
+       bright half of the gradient sat under the ball that intoNet paints on
+       the same frame, and nothing of it was ever visible. 6.5 puts the mid
+       stop of the gradient at about two ball radii and the rim well clear. */
+    var reach = r * 6.5;
 
     add(function (stamp) {
       var t = (stamp - t0) / life;
@@ -270,7 +277,9 @@
       var swing = Math.exp(-4.2 * t) * Math.cos(t * Math.PI * 3.1);
       var open = (1 - Math.exp(-14 * t)) * swing;
       var rad = reach * (0.42 + 0.58 * Math.abs(open));
-      var a = 0.30 * Math.exp(-3.1 * t);
+      // -3.1 spent the bulge in the first 150ms of its 520. A net rings
+      // down over the whole of it.
+      var a = 0.34 * Math.exp(-2.6 * t);
       if (a <= 0.01 || rad < 1) return true;
 
       var g = ctx.createRadialGradient(x, y, 0, x, y, rad);

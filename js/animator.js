@@ -327,6 +327,27 @@
     return (p.x * 1.177).toFixed(1) + '%';
   };
 
+  /* Where the dive meets the grass, and when.
+
+     Half the poses never come back down: jump_L2, jump_R2 and jump_center all
+     end above the standing line, which is what a negative POSES[..].y means.
+     game.js used to fire the dust plume and a landing shake on `land` for
+     every dive, so a keeper still a body-height in the air puffed grass at
+     the goal line and shook the camera for an impact that never happened.
+
+     The contact a high dive really has is the push-off, on `swap`, under
+     where he was standing -- so that is the frame, that is the place, and it
+     is softer than a body hitting the ground. */
+  PoseAnimator.prototype.impact = function (name) {
+    var p = POSES[name] || POSES.idle;
+    var airborne = p.y < 0;
+    return {
+      at:    airborne ? TIMING.swap : TIMING.land,
+      x:     airborne ? '0%' : this.landing(name),
+      force: airborne ? 1.6 : 2.6
+    };
+  };
+
   PoseAnimator.prototype.reset = function (opts) {
     var el = this.el;
     var self = this;

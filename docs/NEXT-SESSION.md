@@ -71,10 +71,9 @@ Android Chrome, over the live URL:
   two-column: goal left, words and ball right.
 * A phone with a notch — check the `env(safe-area-inset-*)` padding.
 * Pinch zoom works and does not break the layout.
-* **The keeper's dive.** This is the one piece verified only numerically —
-  the test browser ran the page in a background tab, where timers are
-  throttled, so nobody has watched it at full speed yet. Is 540ms too slow?
-  Is the crouch readable or does it look like a stutter?
+* **The keeper's dive.** Watched frame by frame on a desktop on 2026-08-29
+  (see item E) but never on a phone. Is 560ms too slow? Is the crouch
+  readable, or does it look like a stutter?
 
 ---
 
@@ -205,51 +204,96 @@ placeholder now uses it too).
 
 ### E. Feel-check the rebuilt animation — branch `feat/game-feel`
 
-Depends on B, and it is now the largest open item. Commit `d0a5081` rebuilt
-both the ball and the dive; **none of it has been watched in motion.** The
-test browser ran the page in a background tab, where the document timeline is
-frozen — WAAPI does not advance at all — and `setTimeout` is clamped to about
-a second. Everything below was verified numerically or from the canvas
-pixels; nothing was verified by eye at full speed.
+The rebuild from `d0a5081` **has now been watched**, on 2026-08-29, in a
+foreground tab at 1912 x 867. Two defects came out of it and are fixed; the
+rest of the list is what a real phone still has to answer.
 
-What is new, and where the dials are:
+How it was watched, because the method is reusable: the page cannot be
+screenshotted fast enough to catch a 620ms flight, so instead
+`window.requestAnimationFrame` was swapped for a no-op and every
+`document.getAnimations()` entry paused, on a `setTimeout` at a chosen
+millisecond. That freezes the canvas mid-paint and the dive mid-tween, and
+the frame can then be inspected at leisure. Freezing at 668ms landed 28ms
+into the net bulge, its peak, within 1ms of the request. Separately, pausing
+just the two keeper animations and writing `currentTime` steps the dive to
+any offset with no timing luck at all.
+
+#### Fixed
+
+**The dust plume and the landing jolt fired in mid-air.** Three of the six
+poses end above the standing line — `jump_L2`, `jump_R2` and `jump_center`,
+the ones with a negative `POSES[..].y`. game.js fired both off `TIMING.land`
+for every dive, so on those three the grass puffed at the goal line and the
+camera shook for an impact that never happened: measured on `jump_L2` at
+`land`, the keeper's feet were at y 548 against 591 standing — 43px up, and
+23px clear of the goal's own bottom edge at 571. `jump_L1` at the same frame
+sits at 634, which is 42px *below* the line, on the grass, as it should be.
+
+The animator now answers the question instead of game.js assuming it:
+`PoseAnimator.impact(pose)` returns the frame, the place and the force. A
+high dive's only contact with the grass is the push-off, so it takes
+`TIMING.swap`, `--dust-x: 0%` and a softer 1.6; a low dive keeps `land`, the
+landing offset and 2.6.
+
+**The net bulge was never visible.** `reach` was `r * 3.4`, and `r` is the
+ball as drawn on the net — about 16px on a 1912px stage, since the flight
+ends at `S_END` of the kicked size. That put the bulge at 1.43 ball radii at
+rest and 2.1 at its peak, so the bright half of the gradient sat underneath
+the ball that `intoNet` paints on the same frame. The eight cords ran from
+0.30 to 0.82 of that radius — also under the ball. And `burst()` fired in
+the same statement, dropping 110 confetti bits on the strike point while the
+bulge was still opening.
+
+Three changes: `reach` is `r * 6.5`, the decay is `exp(-2.6 t)` from `0.34`
+rather than `exp(-3.1 t)` from `0.30` so it rings down across the whole
+520ms instead of being spent in the first 150, and the confetti waits 180ms.
+The bulge now reads as an oval of light with cords, out to about the panel
+edge, with the ball sitting in the middle of it.
+
+#### Still only a real phone can answer
+
+* Is 620ms of flight too fast to read? The ball leaves at full speed now —
+  the old smoothstep hid this by starting slow.
+* Does the `hang` float or hover? Measured: 570px/s through the launch
+  (0.22 → 0.44), then 156px/s through the hang (0.44 → 0.76). It is 3.6x
+  slower, which is a float by construction; whether 180ms of it is too long
+  is an eye question.
+* Is the 12° body roll too much for a sprite that already carries its angle?
+* Is the parallax on `.turf` (1.4x the goal's shake) visible or wasted?
+* A low-end phone. The heaviest frame costs 0.1ms median / 0.5ms worst on a
+  1912x914 desktop canvas against a 16.7ms budget; that number means nothing
+  about a cheap Android.
+
+Where the dials are:
 
 | Thing | File | Dial |
 |---|---|---|
 | Ball flight, perspective, shadow, motion blur | `js/fx.js` | `S_END` (0.30) governs both speed and size; `lift` (58) is the arc |
 | Save deflection, net bulge, camera shake, confetti | `js/fx.js` | `deflect()`, `netBulge()`, `shake()` |
 | The dive | `js/animator.js` | `TIMING` — duration 560, coil .18, swap .22, launch .44, hang .76, land .90 |
+| Which frame the dust and jolt fire on | `js/animator.js` | `PoseAnimator.impact()` |
 | Keeper shadow | `css/game.css` `.keeper-shadow` | width 34%, `bottom: -1.5%` |
 
-Questions only a real screen can answer:
-
-* Is 620ms of flight too fast to read now that the ball leaves at full speed?
-  The old smoothstep hid this by starting slow.
-* Does the `hang` at 76% actually float, or does the keeper hover?
-* Is the 12° body roll too much for a sprite that already carries its angle?
-* Does the net bulge read as a net, or as a white blob?
-* Is the parallax on `.turf` (1.4x the goal's shake) visible or wasted?
-
-What *was* verified, and how:
+What was verified numerically and still holds:
 
 * The ball lands **0.0000px** from the panel centre, all six panels, at
-  1912x914 and at 360x640. The old flight had the same invariant; it holds.
+  1912x914 and at 360x640.
 * Mid-flight the ball spans y 462–522 on the canvas at alpha 255 and its
-  shadow y 664–684 at alpha 48 — 142px of separation, which is the height cue.
-* The heaviest frame the engine can draw costs **0.1ms median, 0.5ms worst**
-  on a 1912x914 canvas, against a 16.7ms budget. That is a desktop GPU; a
-  low-end phone is the real test.
+  shadow y 664–684 at alpha 48 — 142px of separation, the height cue.
 * `prefers-reduced-motion` still flies the ball and still lands it exactly;
-  only the trail, shake, bulge and confetti drop out. `.fx` is deliberately
-  **not** hidden the way `.dust` and `.hit` are — the ball lives on it.
+  only the trail, shake, bulge and confetti drop out.
 
-Three long-standing defects were fixed on the way, and are worth not
-reintroducing: `preload()` read `getComputedStyle().backgroundImage`, which
-never fetches anything; `game.js` restated the dive timing as
+Three long-standing defects were fixed on the way in `d0a5081`, and are
+worth not reintroducing: `preload()` read `getComputedStyle().backgroundImage`,
+which never fetches anything; `game.js` restated the dive timing as
 `90 + 540 * 0.84`, so retuning the dive desynced the dust; and `play()`
 forced a synchronous layout on every dive.
 
----
+#### Confirmed, and still open — see item C
+
+At rest the bottom-centre `×3` label is completely behind the keeper. That
+is the patch item C already describes, not a new defect.
+
 
 ## Verification
 

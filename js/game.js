@@ -83,14 +83,17 @@
     var dive = scores ? FSAnimator.WRONG_WAY[cell] : FSAnimator.COVERS[cell];
     setTimeout(function () { anim.play(dive); }, DIVE_DELAY);
 
-    // He meets the ground on the landing frame of that dive, and the plume is
-    // the impact a still sprite cannot show. Both numbers are read from
-    // FSAnimator.TIMING rather than restated: they used to be spelled out
-    // here as `90 + 540 * 0.84`, so retuning the dive desynced the dust.
+    // The plume and the jolt are the impact a still sprite cannot show. Which
+    // frame carries that impact depends on the dive, so the animator is asked
+    // rather than told: a high dive never lands, and its only contact with the
+    // grass is the push-off. Nothing here is restated -- these numbers used to
+    // be spelled out as `90 + 540 * 0.84`, so retuning the dive desynced the
+    // dust.
+    var impact = anim.impact(dive);
     setTimeout(function () {
-      fx(dust, { '--dust-x': anim.landing(dive) });
-      FSFx.shake(220, 2.6);
-    }, DIVE_DELAY + T.duration * T.land);
+      fx(dust, { '--dust-x': impact.x });
+      FSFx.shake(220, impact.force);
+    }, DIVE_DELAY + T.duration * impact.at);
 
     if (scores) {
       FSFx.shoot(ball, panel, { duration: 640 })
@@ -102,7 +105,11 @@
           FSFx.shake(320, 5);
           FSFx.intoNet(state);
           stage.dataset.state = 'celebrate';
-          FSFx.burst(centre(panel));
+          // A beat, then the confetti. 110 bits out of the strike point cover
+          // the net bulge completely, and the bulge is over inside 520ms --
+          // fired together, the net was never seen at all. The gap also reads
+          // as a crowd taking a moment to realise.
+          setTimeout(function () { FSFx.burst(centre(panel)); }, 180);
           say(FSI18n.t('msg.goal'), 1400);
           return wait(1500);
         })
