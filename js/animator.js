@@ -12,15 +12,30 @@
 
      Percentages, not pixels: translate() resolves them against the element's
      own size, and css/game.css sizes the keeper as a share of the goal. So a
-     dive lands on the same panel whether the goal renders 260px wide or 560. The numbers are the old stage pixels over the 110x164 box they
+     dive lands on the same panel whether the goal renders 260px wide or 560.
+
+     They were rescaled when the goal became the painted one. A percentage of
+     the keeper's own box is only a fixed distance across the goal while the
+     box keeps its proportion to it, and it did not: the box went from 30.6%
+     of the goal's width to 22.95%, and from 45.7% of the width in height to
+     34.2%. The dives kept their numbers and so travelled a quarter less far
+     across a goal that had got wider -- his glove reached 69.9% of the way
+     across for a shot into a panel centred at 81.7%.
+
+     Restored by measurement, not by feel: the old composition put the glove
+     of jump_R2 at 76.5% against a panel centre of 80.5%, four points short,
+     which is what a dive should look like. Getting back to four points short
+     of the new centre wants the horizontal numbers at 1.81x. The vertical
+     ones only wanted 1.07: the goal got flatter as it got wider, so the rows
+     shrank almost as much as the keeper's travel did. The numbers are the old stage pixels over the 110x164 box they
      were measured in -- -46px of 110 is -41.82%. */
   var POSES = {
     idle:             { x:      0, y:      0, scale: 1    },
-    jump_L1:          { x: -36.36, y:  13.41, scale: 1    },  // low  left
-    jump_L2:          { x: -41.82, y: -18.29, scale: 1    },  // high left
-    jump_R1:          { x:  36.36, y:  13.41, scale: 1    },  // low  right
-    jump_R2:          { x:  41.82, y: -18.29, scale: 1    },  // high right
-    jump_center:      { x:      0, y: -10.98, scale: 1.02 },  // high centre
+    jump_L1:          { x: -65.81, y:  14.35, scale: 1    },  // low  left
+    jump_L2:          { x: -75.69, y: -19.57, scale: 1    },  // high left
+    jump_R1:          { x:  65.81, y:  14.35, scale: 1    },  // low  right
+    jump_R2:          { x:  75.69, y: -19.57, scale: 1    },  // high right
+    jump_center:      { x:      0, y: -11.75, scale: 1.02 },  // high centre
     jump_center_down: { x:      0, y:      0, scale: 1    },  // low  centre
 
     /* Three poses that are not dives. They are drawn where they belong on the

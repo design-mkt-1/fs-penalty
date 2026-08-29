@@ -182,7 +182,7 @@ Three findings worth keeping:
 
 ## What was done, 2026-08-29
 
-Five commits, all on `main`.
+Seven commits, all on `main`.
 
 | Commit | What |
 |---|---|
@@ -191,8 +191,10 @@ Five commits, all on `main`.
 | `1ca2928` | The registration card brought back to its Figma node, value by value — item D |
 | `b2e9b6a` | A new stadium plate, shot from the penalty spot, with the goal in it |
 | `ac0a8a4` | A spinning ball rendered as a real sphere, and four more keeper poses |
+| `3edce13` | This handoff and the README caught up |
+| (next) | The dive offsets recalibrated to the new goal |
 
-Three findings worth keeping:
+Four findings worth keeping:
 
 * **A `backdrop-filter` is a stacking context.** While the glass plate lived
   on `.panel`, nothing inside the button could ever paint in front of the
@@ -206,6 +208,14 @@ Three findings worth keeping:
   brightest frame — 12% in, scale .4 — it rendered 0.8px wide. Paused there
   over the keeper's kit, nothing was visible at all. It is a gradient ring
   now, which keeps its share of the circle at every scale.
+* **A percentage of the keeper's own box is not a fixed distance across the
+  goal.** The dive offsets in `POSES` are shares of his box, and when the goal
+  changed shape the box went from 30.6% of its width to 22.95% — so the same
+  numbers carried him a quarter less far across a goal that had got wider. His
+  glove reached 69.9% of the way across for a shot into a panel centred at
+  81.7%. Rescaled 1.81x horizontally and 1.07x vertically, which puts every
+  glove four points short of its panel centre, the relationship the old
+  composition had.
 * **The old plate was the wrong end of the ground, and no CSS could fix it.**
   Its white lines are the penalty area fifty metres away. Everything drawn to
   compensate — a near goal area on a plane tipped 80.2 degrees, squeezed to
@@ -259,22 +269,14 @@ it does not cover:
   up, `beaten` for 1200 while the confetti falls. Both were verified to fire
   and to stand him back up; neither was watched at speed.
 
-### C. The dive offsets against the new goal
-
-`POSES` in `js/animator.js` still carries the offsets measured against the old
-1.93:1 goal, as percentages of the keeper's own box. That box changed shape
-when the goal did, so each dive should be re-checked against the panel it is
-supposed to cover: `jump_L2` on the top-left plate, `jump_R1` on the
-bottom-right, and so on, at 1912 × 914 and at 360 × 640.
-
-### D. The idle loop
+### C. The idle loop
 
 He breathes, and between shots that is all he does. There are three sprites
 now that are not dives and only two of them are used. The set position could
 play on hover or focus of a panel rather than only inside the dive, which
 would make the goal read as something being aimed at rather than clicked.
 
-### E. Sound for the new beats
+### D. Sound for the new beats
 
 `assets/audio/` has `kick`, `save`, `net`, `cheer` and `whistle`. The
 celebration and the head drop have no sound of their own.
