@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 # The Pages source for this repo is "GitHub Actions", so a workflow has to
 # publish the site — with no workflow the site is enabled but serves 404.
-# Only the files the page actually needs are uploaded: raw/ holds ~28 MB of
+# Only the files the page actually needs are uploaded: raw/ holds 22 MB of
 # source renders that tools/cutout.py consumes, and none of it is served.
 
 on:

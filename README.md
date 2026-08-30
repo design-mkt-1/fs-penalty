@@ -31,7 +31,7 @@ js/
   form.js       tab switch, validation, complete state
   main.js       boot
 assets/img/     shipped artwork (WebP) and Figma exports (SVG)
-raw/            source renders — NOT deployed (~12 MB)
+raw/            source renders — NOT deployed (22 MB, still in the public repo)
 tools/cutout.py     rebuilds assets/img from raw/
 tools/ball_sheet.py renders the ball and its rotation frames outright
 ```
@@ -108,8 +108,9 @@ Two modes:
   from the frame edge, so achromatic parts *inside* the subject survive.
 * **rgba** — the source is already keyed and only needs resizing. The four poses
   added later are kept in `raw/` that way, as lossless RGBA WebP: the repo is
-  public and every byte of `raw/` is served from it, and a keyed render is
-  900 kB against the 3.7 MB its flat-grey PNG cost.
+  public, so every byte of `raw/` is downloadable from it whatever the site
+  serves, and a keyed render is 900 kB against the 3.7 MB its flat-grey PNG
+  cost.
 
 The ball no longer goes through this script at all, and neither does the goal:
 `tools/ball_sheet.py` renders the ball, and the goal is painted into the pitch

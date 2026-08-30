@@ -25,62 +25,26 @@ scores, and scoring opens the FanSport registration card.
 
 ---
 
-## Two things only the repo owner can do
+## The blocker that is gone
 
-### 1. The Pages source is wrong, and the whole repo leaks because of it
-
-**This is the one blocker.** Every push currently triggers *two* deployments
-that race each other:
-
-| Workflow | What it publishes |
-|---|---|
-| `.github/workflows/pages.yml` (ours) | only `index.html`, `.nojekyll`, `css/`, `js/`, `assets/` |
-| `pages-build-deployment` (GitHub's built-in) | **the whole repo** |
-
-The built-in one is winning. Verified against the live URL on 2026-08-29,
-before that day's work replaced the artwork:
+**Resolved 2026-08-29.** The Pages source is on GitHub Actions now, so only
+`pages.yml` publishes and the built-in `pages-build-deployment` no longer
+races it. Verified against the live URL after the audit deploy:
 
 ```
-raw/_raw-bg.png        200   6 219 457 bytes
-raw/_raw-ball.png      200   4 263 097 bytes
-docs/NEXT-SESSION.md   200
-tools/cutout.py        200
+raw/_raw-keeper-idle.png   404
+docs/NEXT-SESSION.md       404
+tools/cutout.py            404
+index.html                 200
 ```
 
-`Last-Modified` matched the most recent deploy, so that was the current
-publish and not a stale cache. Both of those files are gone now and `raw/` is
-down from 28 MB to about 12, but the leak is the same leak: everything in the
-repo is published, including `raw/`, `docs/` and `tools/`.
+One thing this does **not** fix, and it is worth being clear about: the repo
+is public, so those files are still downloadable from GitHub itself.
+`raw.githubusercontent.com/design-mkt-1/fs-penalty/main/raw/_raw-keeper-idle.png`
+returns 200 with 2 485 104 bytes. `raw/` is 22 MB across 9 files and `.git/`
+is 40 MB, so every clone pays for the renders twice. Taking them out of
+tracking is a decision nobody has made yet — see *What is next*, item C.
 
-**Fix:** GitHub → repo → Settings → Pages → *Build and deployment* →
-Source → **GitHub Actions**. That stops the built-in deployment and leaves
-only `pages.yml`. It is a repo setting, not code — no commit can fix it.
-
-Re-check afterwards: `curl -s -o /dev/null -w "%{http_code}"
-https://design-mkt-1.github.io/fs-penalty/raw/_raw-keeper-idle.png` must
-return **404**.
-
-### 2. Real-device testing
-
-Not a code change, but the acceptance gate. Chrome emulation covered twelve
-viewport sizes; a real phone covers what emulation cannot. iOS Safari and
-Android Chrome, over the live URL:
-
-* Drag the page vertically — nothing moves, no rubber-band.
-* Open the card, focus a field, let the soft keyboard appear — the page
-  still does not scroll; the card scrolls inside itself if it must.
-* Rotate to landscape and back. Below 640px tall the layout goes
-  two-column: goal left, words and ball right.
-* A phone with a notch — check the `env(safe-area-inset-*)` padding.
-* Pinch zoom works and does not break the layout.
-* **The keeper's dive.** Watched frame by frame on a desktop but never on a
-  phone. Is 560ms too slow? Is the crouch readable, or does it look like a
-  stutter?
-* Everything listed under *What is next*, item B: the new pitch plate, the
-  ball's spin and the two new keeper reactions have only ever been seen on a
-  desktop.
-
----
 
 ## What a fresh session needs to know about the architecture
 
@@ -182,7 +146,7 @@ Three findings worth keeping:
 
 ## What was done, 2026-08-29
 
-Seven commits, all on `main`.
+Nine commits, all on `main`.
 
 | Commit | What |
 |---|---|
@@ -193,6 +157,8 @@ Seven commits, all on `main`.
 | `ac0a8a4` | A spinning ball rendered as a real sphere, and four more keeper poses |
 | `3edce13` | This handoff and the README caught up |
 | `ef2fd10` | The dive offsets recalibrated to the new goal |
+| `df20286` | A 20px email field, and a header that was never the design's |
+| `9c3e8bb` | Full audit: five real faults, plus weight and accessibility |
 
 Four findings worth keeping:
 
@@ -222,6 +188,31 @@ Four findings worth keeping:
   half width to bring it into frame — was compensating for a photograph that
   could not be made to agree.
 
+Four more, from the audit:
+
+* **`max-width: 100%` is a no-op on a grid item that sets its own width.**
+  `.sheet` is `display: grid; place-items: center`, so its implicit column is
+  auto-sized — it took its width from the card's `width: 365px`, and the
+  card's `max-width: 100%` then resolved against the column the card had just
+  created. Circular, and silent. At 320px, 57px of the card sat outside the
+  screen on a page that cannot scroll to reach it. `width: min(365px, 100%)`
+  is the whole fix.
+* **One unguarded `localStorage` read can take down a page that has nothing
+  to do with storage.** `audio.js` read it at module scope. Storage that
+  throws killed the IIFE, so `FSAudio` never existed, `main.js` threw on the
+  next line, and `FSI18n`, `FSForm`, `FSGame` and `FSStage` never
+  initialised. Confirmed by running the old file under a throwing stub: an
+  uncaught `SecurityError` and no `FSAudio` at all. `i18n.js` had guarded its
+  own two calls all along; `audio.js` had not.
+* **A promise chain with one boolean latch and no `.catch` is a trap.**
+  `busy` gates every shot. An injected throw inside a `.then` stranded it at
+  `true` with nothing in the console. The fix is four lines, and the test is
+  worth keeping: replace `FSForm.open` with a function that throws, score,
+  and check the page still takes the next shot.
+* **A hidden `role="status"` is not in the accessibility tree.** `say()` wrote
+  the text and *then* unhid the element, so the miss message may never have
+  been announced. Two lines, swapped.
+
 ### Decisions taken
 
 | Topic | Decision |
@@ -232,54 +223,87 @@ Four findings worth keeping:
 | Keeper art | Generated against the existing sprite as a character reference, so the kit, the face and the camera match |
 | `raw/` for new art | Kept already keyed, as lossless RGBA WebP: 900 kB against 3.7 MB, and `raw/` is served publicly until item A is done |
 | Card colours | `--muted` stays `#9a9aa0` against the design's `#8e8e93`, which is 4.3:1 on the field background, and the "Log in" link keeps its underline |
+| The done screen | Left exactly as drawn. It says "Registration Successful!" and shows a masked password while nothing is registered anywhere — that is the client's flow to replace, not ours to soften |
+| The card at 320px | Fixed in both halves: the box, and the four fixed type sizes in `form.css`, which was the only file in `css/` with no `clamp()` or `cq` unit |
+| The brand ramps in `tokens.css` | Kept, not pruned. Most steps are unreferenced, but ~1.4 kB is nothing beside the images and the cost of losing them is a fourth hand-mixed green |
+| SEO and meta | Still out of scope: no description, Open Graph, favicon or canonical |
 
 ---
 
 ## What is next
 
-In order. Item A needs the repo owner; the rest is work.
+Item A is the acceptance gate and needs a phone. B and C are decisions
+somebody has to make. D is work.
 
-### A. Set the Pages source to GitHub Actions
+### A. Real-device testing — still the gate
 
-See *Two things only the repo owner can do* above. Still not done, and still
-the only blocker: `raw/` is served on every visit. It is smaller than it was
-— the goal's render and the ball's are gone, and the new poses are keyed
-WebP — but ~12 MB of it should not be public at all.
+Nothing added on 2026-08-29 has been seen on a phone, the audit fixes
+included. Everything was verified in Chrome, across viewports from 320 x 568
+to 1920 x 1200 plus landscape, which is not the same thing.
 
-Re-check afterwards: `curl -s -o /dev/null -w "%{http_code}"
-https://design-mkt-1.github.io/fs-penalty/raw/_raw-keeper-idle.png` must
-return **404**.
+Standing checklist, on iOS Safari and Android Chrome over the live URL:
 
-### B. Real-device testing — everything below is desktop-verified only
+* Drag the page vertically — nothing moves, no rubber-band.
+* Open the card, focus a field, let the soft keyboard appear — the page still
+  does not scroll; the card scrolls inside itself if it must.
+* Rotate to landscape and back. Below 640px tall the layout goes two-column.
+* A phone with a notch — check the `env(safe-area-inset-*)` padding.
+* Pinch zoom works and does not break the layout.
+* **The card at 320px.** Fixed and measured — 296px wide, nothing clipped —
+  but measured by forcing `#viewport`, not on a real 320px device.
+* **The keeper's dive.** Is 560ms too slow? Is the crouch readable, or does it
+  look like a stutter?
+* **The ball's spin.** 4.5 turns in 620ms is 7.3 a second. A 24-frame sheet at
+  60fps advances 2.9 frames a tick, which the motion blur covers. A low-end
+  phone at 30fps advances 5.8 — a quarter turn a frame — and it may strobe.
+* **The two reactions.** `cheer` holds 900ms, `beaten` 1200. Both fire and
+  stand him back up; neither has been watched at speed.
 
-Nothing added on 2026-08-29 was seen on a phone. The standing checklist is
-under *Two things only the repo owner can do* above; these are the new things
-it does not cover:
+### B. Three things only the client can supply
 
-* **The new plate.** It is 1800px wide and drawn up to 2233 CSS px on a
-  desktop; on a phone it is drawn at about 1430 and should be sharp. Check
-  that the foreground grass still reaches the ball — the extension at the
-  bottom of the image is sized for 2.49 goal widths and there are 2.66, but
-  that was calculated, not seen.
-* **The ball's spin.** 4.5 turns in 620ms is 7.3 a second, and a 24-frame
-  sheet at 60fps advances 2.9 frames a tick, which the motion blur covers on
-  a desktop. A low-end phone at 30fps advances 5.8 — a quarter turn a frame
-  — and it may strobe.
-* **The two new reactions.** `cheer` holds for 900ms while the miss message is
-  up, `beaten` for 1200 while the confetti falls. Both were verified to fire
-  and to stand him back up; neither was watched at speed.
+| What | Where | Note |
+|---|---|---|
+| The bonus figure | `js/i18n.js:32,67,102` | `(AMOUNT)` is a placeholder in all three locales, as in the source design. It cannot go live as it is |
+| The signup URL | `js/form.js:13` | `var DESTINATION = null` — a null reloads the page, a URL navigates. One line |
+| Legal copy | not present | 18+, T&C, responsible gambling. The client's IT team adds it |
 
-### C. The idle loop
+### C. `raw/` is out of the site but still in the repo
 
-He breathes, and between shots that is all he does. There are three sprites
-now that are not dives and only two of them are used. The set position could
-play on hover or focus of a panel rather than only inside the dive, which
-would make the goal read as something being aimed at rather than clicked.
+The Pages leak is closed. The repo is public, so the 22 MB in `raw/` is still
+downloadable from `raw.githubusercontent.com`, and `.git/` is 40 MB, so every
+clone pays for the renders twice. Taking them out of tracking (`git rm
+--cached` plus a `.gitignore` line) is reversible for anyone who keeps a copy
+and irreversible for anyone who does not. Nobody has decided; do not do it
+without asking.
 
-### D. Sound for the new beats
+### D. Loose ends in the code
 
-`assets/audio/` has `kick`, `save`, `net`, `cheer` and `whistle`. The
-celebration and the head drop have no sound of their own.
+* **The bonus select is decorative.** `fs-bonus` appears zero times in
+  `js/form.js` — never read on submit, never reset by `restore()`. Its three
+  `<option>` elements carry no `value`, so a submit would send the translated
+  label.
+* **Two dead links.** `index.html:30` (the logo) and `:190` ("Log in"), both
+  `href="#"`.
+* **The headline disappears in Windows High Contrast.** `css/game.css:688-689`
+  paints `.tagline__text` with `background-clip: text` over a transparent
+  colour, and `forced-colors` appears zero times in `css/`.
+* **No sound for two beats.** `assets/audio/` has five files and all five are
+  played, but the confetti burst and the keeper's head drop have none of
+  their own.
+* **The country button is decorative** (`index.html:143`) while the `+998`
+  prefix is fixed in `js/form.js`. The visitor never sees the code they are
+  typing under until the done screen.
+* **Three copies of the same hidden-tab rAF guard**: `fx.js`, `form.js:171`,
+  `i18n.js:259`.
+* **Three greens that are not each other**: `--accent: #3fd62b`,
+  `--cta: #30d158`, `--promo: #3dd629`.
+
+### E. The idle loop
+
+He breathes, and between shots that is all he does. `keeper-ready.webp` is
+only used inside the dive. Playing the set position on hover or focus of a
+panel would make the goal read as something being aimed at rather than
+clicked.
 
 ## Verification
 
@@ -306,10 +330,22 @@ Serve locally with `python -m http.server 8000`, then:
    `document.documentElement.lang` follows. Russian, the longest, does not
    overflow any button.
 7. **Fonts** — `performance.getEntriesByType('resource')` shows zero entries
-   matching `fonts.googleapis|gstatic`, and one woff2 on first paint.
-8. **After pushing** — the Actions run is green, the live URL serves the
-   change, and `raw/` returns **404**. It does not today; see item A.
-9. **The goal is on the goal** — at any viewport the six panels sit inside
-   the painted posts and the keeper's boots sit on the painted goal line. If
-   they drift, the three plate numbers in `css/game.css` have stopped agreeing
-   with the measurement of `pitch-spot.webp`.
+   matching `fonts.googleapis|gstatic`, and two woff2 on an English first
+   paint: `montserrat-latin` and `roboto-latin`, both preloaded from the head.
+8. **Load order** — nothing matching `\.mp3` appears in
+   `performance.getEntriesByType('resource')` before the first tap. The plate
+   and the two latin faces start at ~9ms; the nine dive sprites start after
+   `domContentLoadedEventEnd`, not before it.
+9. **The card fits** — force `#viewport` to 320 x 568, open the card, and no
+   descendant of `.card` extends past `.sheet`. At 390 the card is 365px and
+   the numeral 76px, unchanged from the design.
+10. **The page cannot be locked** — replace `FSForm.open` with a function that
+    throws, score, and check `.panel` still has `pointer-events: auto` and the
+    next shot fires. The console must carry
+    `[fs-penalty] the shot sequence failed`.
+11. **After pushing** — the Actions run is green, the live URL serves the
+    change, and `raw/` returns **404**.
+12. **The goal is on the goal** — at any viewport the six panels sit inside
+    the painted posts and the keeper's boots sit on the painted goal line. If
+    they drift, the three plate numbers in `css/game.css` have stopped
+    agreeing with the measurement of `pitch-spot.webp`.
