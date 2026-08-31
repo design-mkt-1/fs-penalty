@@ -412,20 +412,19 @@
   position: relative;
   display: grid;
   place-items: center;
-  /* The gap the labels are held off the crossbar and the net base by. */
-  padding: clamp(6px, 2.4cqw, 15px) 0;
+  padding: 0;
   background: none;
   border: 0;
 }
 
 /* The glass is on a pseudo-element rather than on the button, and that is
    load-bearing rather than tidy. backdrop-filter makes an element a stacking
-   context, so while the plate lived on .panel nothing inside the button could
-   ever paint in front of the keeper -- and the keeper stands in the middle
-   column. Split in two, the plate sits behind him at 2 and the label in front
-   at 4. Anything added to .panel or .panels that forms a stacking context --
-   filter, opacity below 1, transform, will-change -- drops the labels back
-   behind him, which is why :active scales these two instead of the button. */
+   context, and a blurred plate over the keeper would frost him. Split in two,
+   the plate and the label are ordered against him independently: both are at
+   z-index 2 today, behind his 3, but only the plate has to be. Keep .panel
+   and .panels free of anything that forms a stacking context -- filter,
+   opacity below 1, transform, will-change -- or the two halves lose that
+   freedom, which is why :active scales these instead of the button. */
 .panel::before {
   content: "";
   position: absolute;
@@ -440,34 +439,29 @@
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
-/* The labels retreat to the frame: the top row hugs the crossbar, the bottom
-   row the net base. One rule for all six, and it is the composition's own --
-   the keeper owns the middle of the goal, so nothing is written there.
+/* Every label sits in the middle of its own cell -- one rule for all six, and
+   the six cells are the aim grid, so a label centred in one is the target it
+   names. The earlier version pushed the top row up against the crossbar and
+   the bottom row down onto the net base to keep the two centre labels off the
+   keeper; that bought clearance at the price of labels that no longer marked
+   their cells.
 
-   It replaces two hand-tuned nudges: translateY(-4.4cqw) on every label to
-   clear his head, and +8.3cqw on the bottom-centre one to clear his boots.
-   Those left the three labels of a row sitting at unrelated heights, which is
-   what read as a patch.
-
-   The bottom-centre label is the one case with nowhere clear to retreat to.
-   Measured off keeper-idle.webp at the height it now sits, the keeper's
-   silhouette spans 43.4% to 56.9% of the goal and the label is 6.6% wide, so
-   it is over him whichever way it is moved. So it is not moved: z-index 4
-   puts every label in front of him (3). A target marker is interface, and
-   interface reads over the scene. */
-.panel[data-cell^="t"] { align-items: start; }
-.panel[data-cell^="b"] { align-items: end; }
-
+   The keeper keeps the middle of the goal. He renders at z-index 3 and the
+   labels at 2, so the two centre ones pass behind him rather than over him:
+   his silhouette spans 43.4% to 56.9% of the goal, which is most of the
+   centre column, and a multiplier printed across his kit read as a defect.
+   Both plates stay fully clickable -- only the glyph is occluded, and only
+   while he is standing idle in front of it. */
 .panel span {
   position: relative;
-  z-index: 4;
+  z-index: 2;
   display: block;
   font-weight: var(--fw-black);
-  font-size: clamp(14px, 5.6cqw, 30px);
+  font-size: clamp(18px, 7.4cqw, 40px);
   line-height: 1;
   letter-spacing: -.01em;
-  /* The two centre labels land on the keeper's kit, so the halo has to carry
-     them over neon green as well as over the net. */
+  /* The halo carries the glyph over the net, which is bright where the
+     floodlights catch it. */
   text-shadow:
     0 2px 6px rgba(0,0,0,.75),
     0 0 14px rgba(0,0,0,.85),
