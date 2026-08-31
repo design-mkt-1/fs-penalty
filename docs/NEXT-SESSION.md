@@ -168,7 +168,9 @@ Four findings worth keeping:
   `×3` was behind him with nowhere to move to. Measured off
   `keeper-idle.webp`, his silhouette spans 43.4% to 56.9% of the goal at that
   height and the label is 6.6% wide. The plate is on `.panel::before` now, at
-  z-index 2; the label is at 4.
+  z-index 2; the label is at 4. **Superseded on 2026-08-31:** the label is at
+  2 as well, and passes behind him. The split is still load-bearing, but for
+  the other reason — a blurred plate drawn over the keeper would frost him.
 * **`transform: scale()` shrinks a border along with everything else.** The
   hitmark ring was a 2px border and its keyframes scale it, so at its
   brightest frame — 12% in, scale .4 — it rendered 0.8px wide. Paused there
@@ -219,7 +221,7 @@ Four more, from the audit:
 |---|---|
 | The background | Generated, not sourced. One plate shot from the penalty spot, carrying the goal, the six-yard box and the arc, so one camera makes all of them |
 | `goal.webp` | Deleted. 312 kB of sprite the plate now carries itself |
-| The panel labels | Retreat to the frame — top row to the crossbar, bottom row to the net base — and render in front of the keeper. No per-cell nudges |
+| The panel labels | Retreat to the frame — top row to the crossbar, bottom row to the net base — and render in front of the keeper. No per-cell nudges. **Reversed 2026-08-31, see below** |
 | Keeper art | Generated against the existing sprite as a character reference, so the kit, the face and the camera match |
 | `raw/` for new art | Kept already keyed, as lossless RGBA WebP: 900 kB against 3.7 MB, and `raw/` is served publicly until item A is done |
 | Card colours | `--muted` stays `#9a9aa0` against the design's `#8e8e93`, which is 4.3:1 on the field background, and the "Log in" link keeps its underline |
@@ -227,6 +229,42 @@ Four more, from the audit:
 | The card at 320px | Fixed in both halves: the box, and the four fixed type sizes in `form.css`, which was the only file in `css/` with no `clamp()` or `cq` unit |
 | The brand ramps in `tokens.css` | Kept, not pruned. Most steps are unreferenced, but ~1.4 kB is nothing beside the images and the cost of losing them is a fourth hand-mixed green |
 | SEO and meta | Still out of scope: no description, Open Graph, favicon or canonical |
+
+---
+
+## What was done, 2026-08-30 and 08-31
+
+Two commits, both on `main`.
+
+| Commit | What |
+|---|---|
+| `80b7533` | The audit recorded, the Pages blocker retired against the live URL, and three disagreeing figures for `raw/` settled at 22 MB |
+| `eaea688` | The six multiplier labels centred in their own cells, passing behind the keeper |
+
+One finding worth keeping:
+
+* **Clearing the keeper cost the labels the thing they were for.** The
+  08-29 rule pushed the top row against the crossbar and the bottom row onto
+  the net base, so that the two centre labels cleared his silhouette. It
+  worked, and it moved every glyph out of the middle of the plate it names —
+  the top-centre `×3` read as printed on the keeper rather than on its cell.
+  The six cells *are* the aim grid, so a label that has retreated to the frame
+  no longer marks a target. Centring all six and letting him occlude costs
+  only the glyph, only in the centre column, and only while he stands idle in
+  front of it; both plates stay fully clickable either way. Labels also grew
+  from `clamp(14px, 5.6cqw, 30px)` to `clamp(18px, 7.4cqw, 40px)` — the
+  centred layout has the room the pinned one did not.
+
+### Decisions taken
+
+| Topic | Decision |
+|---|---|
+| The panel labels | Reversed from 08-29. Centred in their own cells, keeper at z-index 3 and both `.panel::before` and `.panel span` at 2, so the centre column passes behind him. Still one rule for all six — no per-cell nudges |
+| `.panel` and `.panels` | Stay free of anything that forms a stacking context — `filter`, `opacity` below 1, `transform`, `will-change`. That is what keeps the plate and the label orderable against the keeper independently, and it is why `:active` scales the two halves rather than the button |
+
+Both are live. The deploy of `eaea688` was confirmed on 2026-08-31; the
+`raw/` 404 half of verification step 11 was checked separately on 08-30 and
+is recorded under *The blocker that is gone*.
 
 ---
 
@@ -263,7 +301,7 @@ Standing checklist, on iOS Safari and Android Chrome over the live URL:
 
 | What | Where | Note |
 |---|---|---|
-| The bonus figure | `js/i18n.js:32,67,102` | `(AMOUNT)` is a placeholder in all three locales, as in the source design. It cannot go live as it is |
+| The bonus figure | `js/i18n.js:41,82,123` | `(AMOUNT)` is a placeholder in all three locales, as in the source design. It cannot go live as it is |
 | The signup URL | `js/form.js:13` | `var DESTINATION = null` — a null reloads the page, a URL navigates. One line |
 | Legal copy | not present | 18+, T&C, responsible gambling. The client's IT team adds it |
 
@@ -284,17 +322,21 @@ without asking.
   label.
 * **Two dead links.** `index.html:30` (the logo) and `:190` ("Log in"), both
   `href="#"`.
-* **The headline disappears in Windows High Contrast.** `css/game.css:688-689`
+* **The headline disappears in Windows High Contrast.** `css/game.css:682-683`
   paints `.tagline__text` with `background-clip: text` over a transparent
   colour, and `forced-colors` appears zero times in `css/`.
 * **No sound for two beats.** `assets/audio/` has five files and all five are
   played, but the confetti burst and the keeper's head drop have none of
   their own.
-* **The country button is decorative** (`index.html:143`) while the `+998`
+* **The country button is decorative** (`index.html:152`) while the `+998`
   prefix is fixed in `js/form.js`. The visitor never sees the code they are
   typing under until the done screen.
 * **Three copies of the same hidden-tab rAF guard**: `fx.js`, `form.js:171`,
-  `i18n.js:259`.
+  `i18n.js:259`. Two of the three point at a fourth that is not there any
+  more: both comments say they match "the fallback in game.js", and `game.js`
+  contains no `document.hidden`, `requestAnimationFrame` or `nextFrame` at
+  all — it goes through `fx.js` now. Folding the copies together takes the
+  stale comments with them.
 * **Three greens that are not each other**: `--accent: #3fd62b`,
   `--cta: #30d158`, `--promo: #3dd629`.
 
