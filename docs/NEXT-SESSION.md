@@ -13,6 +13,13 @@ in full rather than assuming any of them are still in someone's head.
 The repo is public, so this stays to engineering facts. No credentials, no
 client contacts, no unreleased commercial terms.
 
+**Where it stands, 2026-08-31.** `main` is clean and pushed, everything below
+is live, and the code has no known defect left in it. Items A to F are the
+whole of the outstanding work and **A is the only one that can be started
+without waiting on somebody else** — it needs a phone, and every change made
+since 08-29 is still unseen on one. If the phone pass has already happened,
+read what it turned up before touching anything.
+
 ## Context
 
 `D:\fs-penalty` is a deployed mobile-first landing page: the visitor picks a
@@ -356,14 +363,17 @@ Two findings worth keeping:
 
 ## What is next
 
-Item A is the acceptance gate and needs a phone. B and C are decisions
-somebody has to make. D is work.
+**Start here.** A is the acceptance gate and is the only item that cannot be
+done from a desk — it needs a phone in a hand. B is the client's to fill and
+C is a decision nobody has taken. D is finished; F is optional. So unless the
+phone pass has happened, A is the whole of the next session.
 
 ### A. Real-device testing — still the gate
 
-Nothing added on 2026-08-29 has been seen on a phone, the audit fixes
-included. Everything was verified in Chrome, across viewports from 320 x 568
-to 1920 x 1200 plus landscape, which is not the same thing.
+Nothing added since 2026-08-29 has been seen on a phone: not the audit fixes,
+not the centred labels of 08-31, not that day's six item D changes. Everything
+was verified in Chrome, across viewports from 320 x 568 to 1920 x 1200 plus
+landscape, which is not the same thing.
 
 Standing checklist, on iOS Safari and Android Chrome over the live URL:
 
@@ -382,6 +392,29 @@ Standing checklist, on iOS Safari and Android Chrome over the live URL:
   phone at 30fps advances 5.8 — a quarter turn a frame — and it may strobe.
 * **The two reactions.** `cheer` holds 900ms, `beaten` 1200. Both fire and
   stand him back up; neither has been watched at speed.
+
+Added to the list by 08-31, and none of it has been on a phone either:
+
+* **The centred labels.** The top-centre `×3` and the bottom-centre `×2` pass
+  behind the keeper by design. On a small screen, is enough of each glyph
+  visible for the cell to read as a target? This is the one change most likely
+  to look different on a phone than it does on a desktop, because the keeper
+  is a fixed share of a goal that is a different size.
+* **The two new sounds.** `confetti` fires 180ms after the goal and `slump`
+  at 320ms, into the tail of `net` and `cheer`. On a phone speaker rather
+  than a desktop one: is the burst audible, and is the slump felt underneath
+  rather than lost or, worse, sticking out? Levels are 0.55 and 0.5 in
+  `js/game.js` and are the easy thing to change.
+* **The inert links.** "Log in" and the logo should read as plain text, with
+  no underline and no press feedback, and should be untappable. A tap
+  highlight on either would mean iOS still sees a link: the
+  `-webkit-tap-highlight-color: transparent` in `css/reset.css:19` is scoped
+  to `button` and does not cover anchors. Worth knowing before item B —
+  filling `HOME_URL` or `LOGIN_URL` turns both back into real links, and they
+  will pick up the iOS highlight that the buttons do not have. Two selectors
+  in the reset if it looks wrong, but do not pre-empt it; nobody has seen it.
+* **The bonus select.** Native pickers differ: iOS renders a wheel. Check the
+  three options are readable in Uzbek and Russian, which are the longer two.
 
 ### B. What only the client can supply
 
