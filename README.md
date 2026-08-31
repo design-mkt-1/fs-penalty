@@ -34,6 +34,7 @@ assets/img/     shipped artwork (WebP) and Figma exports (SVG)
 raw/            source renders — NOT deployed (22 MB, still in the public repo)
 tools/cutout.py     rebuilds assets/img from raw/
 tools/ball_sheet.py renders the ball and its rotation frames outright
+tools/sfx.py        renders the confetti burst and the keeper's head drop
 ```
 
 ## The no-scroll rule
@@ -135,7 +136,20 @@ rather than separate generations — the kit carries no asymmetric mark.
 
 ## Audio
 
-`assets/audio/` holds `kick`, `save`, `net`, `cheer` and `whistle` as MP3.
+`assets/audio/` holds seven MP3s, 159 kB in total, and every one of them is
+played from somewhere. Five are clips: `kick`, `save`, `net`, `cheer` and
+`whistle`. Two are rendered from code by `tools/sfx.py` — `confetti`, the
+burst that follows a goal, and `slump`, the keeper's head dropping after he
+has been beaten. Both are synthesised for the same reason the ball is: the
+output is reproducible from the repository and carries no third-party licence
+onto a client's landing page. The script is deterministic, so re-running it
+rewrites the same bytes and a diff means the recipe changed.
+
+```bash
+pip install lameenc      # the only dependency the other tools do not need
+python tools/sfx.py
+```
+
 Playback is unlocked on the first user gesture — browsers refuse audio before
 one — and the mute state is persisted in `localStorage`. `audio.js` tolerates a
 missing file: that one effect simply never plays.

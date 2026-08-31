@@ -1,15 +1,22 @@
 /* Registration card — Figma mAJyDSaXdr9GO72b7FGvI8, node 1:2823.
-   Values below are the design's own. They stay card-scoped rather than being
-   promoted into tokens.css, because the product card runs a slightly
-   different green and Roboto rather than the brandbook Alan Sans. */
+   The greys, the ink and the error red below are the design's own and stay
+   card-scoped: the card runs Roboto against the page's Montserrat and its own
+   surface greys, so they have no business in tokens.css.
+
+   The green does not stay. This file used to carry two of its own -- --cta
+   #30d158 on the button, the tabs, the focus rings and the tick, and --promo
+   #3dd629 on the offer line -- against --accent #3fd62b on the page. Three
+   greens a hand's breadth apart is a thing nobody chose; it is what happens
+   when a card is built from its own Figma node. Both are --accent now.
+   Measured before swapping, every use site holds or improves: black on the
+   button goes 9.55:1 to 9.99:1, black on an active tab 10.39 to 10.87, and
+   the offer line is within a thousandth of its old luminance. */
 
 .card {
   --card-bg:   rgba(18,18,20,.5);
   --card-brd:  #3a3a3c;
   --field:     #2c2c2e;
   --muted:     #9a9aa0;   /* 5.0:1 on --field; #8e8e93 was 4.3:1 */
-  --cta:       #30d158;
-  --promo:     #3dd629;
   --cta-ink:   #0e0e0e;
   --foot:      #aeaeb2;
   --err:       #ff453a;
@@ -105,7 +112,7 @@
    to measure at 30px. Left auto here: js/i18n.js translates both words. */
 
 .card .promo__sub {
-  color: var(--promo);
+  color: var(--accent);
   font-size: clamp(17px, min(5.65cqw, 5cqh), 22px);
   font-weight: 800;
   line-height: 1.1;
@@ -148,7 +155,7 @@
 
 .card .tab__icon { width: 16px; height: 16px; opacity: .85; }
 
-.card .tab.is-active { background: var(--cta); color: #000; }
+.card .tab.is-active { background: var(--accent); color: #000; }
 .card .tab.is-active .tab__icon { filter: brightness(0); opacity: 1; }
 
 /* ── fields ───────────────────────────────────────────────── */
@@ -232,7 +239,7 @@
    rather than as a label sitting inside a box. js/i18n.js holds the strings. */
 .card .input input::placeholder { color: var(--muted); }
 
-.card .input:focus-within { border-color: var(--cta); }
+.card .input:focus-within { border-color: var(--accent); }
 
 .card .field.is-invalid .input { border-color: var(--err); }
 
@@ -290,7 +297,7 @@
   place-items: center;
   height: 44px;
   border-radius: 12px;
-  background: var(--cta);
+  background: var(--accent);
   color: var(--cta-ink);
   font-size: 18px;
   font-weight: 700;
@@ -319,7 +326,11 @@
 /* Figma draws the whole line as one grey paragraph. The underline is ours
    and stays: the link is the same colour as the sentence around it, so it is
    the only thing that marks it as a link at all. */
-.card .foot a { color: var(--foot); text-decoration: underline; }
+/* [href], so the underline is a promise the anchor can keep. LOGIN_URL in
+   js/main.js is null until the client supplies it, and an anchor with no href
+   is not a link -- styling it like one would advertise a click that no longer
+   happens. It renders as the sentence it sits in until the URL arrives. */
+.card .foot a[href] { color: var(--foot); text-decoration: underline; }
 
 /* ── complete state ──────────────────────────────────────────
    Figma node 1:3427, "Device=Mobile, Tab=Phone, State=Complete". It is a
@@ -347,7 +358,7 @@
   height: 64px;
   margin: 24px auto 8px;
   fill: none;
-  stroke: var(--cta);
+  stroke: var(--accent);
   stroke-width: 3.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -410,7 +421,7 @@
 .card .country:focus-visible,
 .card .cta:focus-visible,
 .card .foot a:focus-visible {
-  outline: 2px solid var(--cta);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -418,6 +429,6 @@
    on the box you can see instead of the invisible text node inside it. */
 .card .input:focus-within,
 .card .select:focus-within {
-  outline: 2px solid var(--cta);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

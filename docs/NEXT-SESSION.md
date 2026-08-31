@@ -92,8 +92,11 @@ tracking is a decision nobody has made yet — see *What is next*, item C.
   page pulls exactly one 37 kB file.
 * `tools/cutout.py` rebuilds `assets/img/*.webp` from `raw/`; the four poses
   added on 2026-08-29 are kept already keyed there, as lossless RGBA WebP, and
-  go through its `rgba` mode. `tools/ball_sheet.py` renders the ball outright.
-  Neither is needed unless the artwork changes.
+  go through its `rgba` mode. `tools/ball_sheet.py` renders the ball outright
+  and `tools/sfx.py` renders two of the seven sounds. None of the three is
+  needed unless the artwork or the audio changes, and none of them ships —
+  `pages.yml` copies an allowlist, so `tools/` is excluded by construction
+  rather than by a rule somebody has to remember.
 
 ---
 
@@ -268,6 +271,89 @@ is recorded under *The blocker that is gone*.
 
 ---
 
+## What was done, 2026-08-31 — the loose ends
+
+Item D, cleared except for one line that became a decision instead. Verified
+in Chrome against a local server, every claim below measured rather than
+assumed.
+
+* **The two dead links.** `href="#"` offered a link that went nowhere and put
+  a bare fragment in the address bar of a page that cannot scroll. Neither
+  anchor carries an href in the markup now; `HOME_URL` and `LOGIN_URL` at the
+  top of `js/main.js` put one there when the client supplies it. Until then
+  they are not links at all — measured, not assumed: `focus()` on either
+  leaves `document.activeElement` elsewhere. The `tabIndex` *property* still
+  reads 0 on both, which is Chrome's IDL default for `<a>` and says nothing
+  about focusability; only the behaviour does. The affordance is qualified on
+  `[href]` in the CSS too, so the "Log in" underline and the logo's press
+  scale arrive with the URL rather than before it. A side effect worth having:
+  `FOCUSABLE` in `form.js` already began `a[href]`, so the card's focus trap
+  stopped counting a tab stop that did nothing.
+* **The bonus select had three faults, not one.** Its options carried no
+  `value`, so the answer would have been whatever the label said in the
+  current locale — confirmed by reading the payload in Russian. They are
+  `casino` / `sport` / `none` now, and translation leaves them alone because
+  `i18n.js` sets `textContent`. It was never read: `SUBMIT` in `form.js` is
+  the seam, null by default, and it receives `{via, contact, bonus, lang}`.
+  And `restore()` never reset it, so a second visit opened on the previous
+  visitor's choice — `selectedIndex = 0` now, and `FSGame.reset()` was checked
+  for the same class of omission and has none.
+* **The headline no longer disappears in Windows High Contrast.**
+  `background-clip: text` needs `color: transparent`, and forced-colors drops
+  the background it was painting through, leaving nothing. A `forced-colors`
+  block hands the glyphs `CanvasText` and drops the scrim and the glow with
+  it. The rest of `css/` was checked for the same shape: `.tagline__text` is
+  the only transparent text in the project, and the panels and the message box
+  both carry a border and a background colour, which the mode forces rather
+  than removes.
+* **One rAF guard instead of four.** `FSFx.next` already existed and was
+  already exported; `form.js` and `i18n.js` now call it. Both of their copies
+  had drifted into describing "the fallback in game.js", and `game.js` has
+  contained no `document.hidden`, `requestAnimationFrame` or `nextFrame` for
+  some time. Three mount-at-opacity-0 paths depend on this — the card, the
+  error line and the language menu — and all three were re-checked afterwards.
+* **The two silent beats have sound.** `confetti` and `slump`, rendered by a
+  new `tools/sfx.py` rather than sourced, for the reason the ball is rendered:
+  reproducible from the repo and no third-party licence on a client's page.
+  The first cut was wrong and the measurement caught it — a one-pole low-pass
+  is 6dB an octave, which against noise is barely a filter, and the confetti
+  came out centred at 9.8kHz, which is hiss. Four cascaded poles put it at
+  4.2kHz and the keeper's slump at 289Hz. Both fire in the right place:
+  the full order is now `kick | save | kick | net | cheer | confetti | slump`.
+* **The three greens are one green.** `--cta` and `--promo` are gone from
+  `form.css` and all seven use sites take `--accent`. Contrast was measured at
+  each before the swap and none of them lost: black on the button 9.55:1 to
+  9.99:1, black on an active tab 10.39 to 10.87, the offer line within a
+  thousandth of its old luminance.
+
+Two findings worth keeping:
+
+* **Verification step 8 could not fail.** It checked that nothing matching
+  `\.mp3` appears in `performance.getEntriesByType('resource')` before the
+  first tap. Media element fetches never appear there at all: with all seven
+  files demonstrably requested — they are in the server's access log, in a
+  block, after `main.js` — that same call still returned zero `.mp3` entries.
+  A test that passes whether or not the bug exists is worse than no test. The
+  step is rewritten below to read the server log, which is where the evidence
+  actually is. The behaviour itself is correct and was confirmed that way.
+* **Port 8000 is not free on every machine.** `python -m http.server 8000` in
+  the project root looked like it was serving this site and was serving
+  something else entirely — 65 bytes of JSON from an unrelated local API that
+  already held the port. Two verification passes ran against it before the
+  size of the response gave it away. Check what answers before trusting it.
+
+### Decisions taken
+
+| Topic | Decision |
+|---|---|
+| The two link seams | `js/main.js`, not `form.js`. They are page chrome; `DESTINATION` is the conversion action and stays where the handoff already points at it |
+| The submit payload | A `SUBMIT` seam that receives the answer, called last and inside a `try`. Tested with a hook that throws: the visitor still reaches the done screen and the console carries `[fs-penalty] the submit hook failed` |
+| The country button | **Stays decorative.** It shows the flag and a caret while `+998` is fixed in `form.js`, and the visitor does not see the prefix until the done screen. Left as the Figma mock draws it, deliberately — this is now a known cosmetic gap, not a task |
+| New audio | Synthesised in `tools/sfx.py`, not generated by a service and not sourced. Deterministic, so a rerun writes the same bytes and a diff means the recipe changed. Needs `pip install lameenc`, which the site does not |
+| The greens | Unified on `--accent`. `form.css` keeps its own greys, ink and error red — those really are the card's design — but a green a hand's breadth from the brand's was nobody's decision |
+
+---
+
 ## What is next
 
 Item A is the acceptance gate and needs a phone. B and C are decisions
@@ -297,12 +383,18 @@ Standing checklist, on iOS Safari and Android Chrome over the live URL:
 * **The two reactions.** `cheer` holds 900ms, `beaten` 1200. Both fire and
   stand him back up; neither has been watched at speed.
 
-### B. Three things only the client can supply
+### B. What only the client can supply
+
+Every seam below is null on purpose and behaves sanely while it stays null.
+Each is one line.
 
 | What | Where | Note |
 |---|---|---|
 | The bonus figure | `js/i18n.js:41,82,123` | `(AMOUNT)` is a placeholder in all three locales, as in the source design. It cannot go live as it is |
-| The signup URL | `js/form.js:13` | `var DESTINATION = null` — a null reloads the page, a URL navigates. One line |
+| The signup URL | `js/form.js:13` | `var DESTINATION = null` — a null reloads the page, a URL navigates |
+| Where the answer goes | `js/form.js:23` | `var SUBMIT = null` — a function receives `{via, contact, bonus, lang}` after the done screen is up. Nothing is sent anywhere until one is written |
+| The home URL | `js/main.js:15` | `var HOME_URL = null` — the logo. Not a link at all until it is filled |
+| The login URL | `js/main.js:16` | `var LOGIN_URL = null` — the "Log in" line, same behaviour |
 | Legal copy | not present | 18+, T&C, responsible gambling. The client's IT team adds it |
 
 ### C. `raw/` is out of the site but still in the repo
@@ -314,33 +406,29 @@ clone pays for the renders twice. Taking them out of tracking (`git rm
 and irreversible for anyone who does not. Nobody has decided; do not do it
 without asking.
 
-### D. Loose ends in the code
+### D. Loose ends in the code — done
 
-* **The bonus select is decorative.** `fs-bonus` appears zero times in
-  `js/form.js` — never read on submit, never reset by `restore()`. Its three
-  `<option>` elements carry no `value`, so a submit would send the translated
-  label.
-* **Two dead links.** `index.html:30` (the logo) and `:190` ("Log in"), both
-  `href="#"`.
-* **The headline disappears in Windows High Contrast.** `css/game.css:682-683`
-  paints `.tagline__text` with `background-clip: text` over a transparent
-  colour, and `forced-colors` appears zero times in `css/`.
-* **No sound for two beats.** `assets/audio/` has five files and all five are
-  played, but the confetti burst and the keeper's head drop have none of
-  their own.
-* **The country button is decorative** (`index.html:152`) while the `+998`
-  prefix is fixed in `js/form.js`. The visitor never sees the code they are
-  typing under until the done screen.
-* **Three copies of the same hidden-tab rAF guard**: `fx.js`, `form.js:171`,
-  `i18n.js:259`. Two of the three point at a fourth that is not there any
-  more: both comments say they match "the fallback in game.js", and `game.js`
-  contains no `document.hidden`, `requestAnimationFrame` or `nextFrame` at
-  all — it goes through `fx.js` now. Folding the copies together takes the
-  stale comments with them.
-* **Three greens that are not each other**: `--accent: #3fd62b`,
-  `--cta: #30d158`, `--promo: #3dd629`.
+All six were cleared on 2026-08-31 and the work is written up above. Nothing
+here is outstanding. What is left of this item is two things that are not
+tasks:
 
-### E. The idle loop
+* **The country button stays decorative** (`index.html:152`) while the `+998`
+  prefix is fixed in `js/form.js`. The visitor does not see the code they are
+  typing under until the done screen. That is a decision, taken above, not an
+  oversight — reopen it only if the design gains a second dial code.
+* **Three seams are now null and waiting**, and none of them is a defect:
+  `HOME_URL` and `LOGIN_URL` in `js/main.js`, `SUBMIT` in `js/form.js`. They
+  belong to item B, with `DESTINATION`, and the client fills all four.
+
+### E. If more comes back
+
+The audit that produced item D was worth running and would be worth running
+again after the real-device pass. Two things it did not cover: no locale but
+English has been read by anyone who speaks it (`README.md` records that UZ and
+RU went live unreviewed, at the owner's call), and nothing here has been put
+in front of a screen reader on a phone, only in Chrome.
+
+### F. The idle loop
 
 He breathes, and between shots that is all he does. `keeper-ready.webp` is
 only used inside the dive. Playing the set position on hover or focus of a
@@ -349,7 +437,17 @@ clicked.
 
 ## Verification
 
-Serve locally with `python -m http.server 8000`, then:
+Serve locally, then work through the list. Pick the port deliberately: 8000
+was already held by an unrelated local API on one of the machines this is
+developed on, and two verification passes ran against it before anyone
+noticed. Confirm the server is this one before trusting anything below.
+
+```bash
+python -m http.server 8099 --bind 127.0.0.1
+curl -s -o /dev/null -w '%{http_code} %{size_download}\n' http://127.0.0.1:8099/
+# 200 and roughly 13 kB. A few dozen bytes means something else answered.
+```
+
 
 1. **The full flow** — shoot, keeper saves, message, shoot again, goal,
    confetti, card, submit, complete screen.
@@ -374,10 +472,23 @@ Serve locally with `python -m http.server 8000`, then:
 7. **Fonts** — `performance.getEntriesByType('resource')` shows zero entries
    matching `fonts.googleapis|gstatic`, and two woff2 on an English first
    paint: `montserrat-latin` and `roboto-latin`, both preloaded from the head.
-8. **Load order** — nothing matching `\.mp3` appears in
-   `performance.getEntriesByType('resource')` before the first tap. The plate
-   and the two latin faces start at ~9ms; the nine dive sprites start after
-   `domContentLoadedEventEnd`, not before it.
+8. **Load order** — the plate and the two latin faces start at ~9ms; the nine
+   dive sprites start after `domContentLoadedEventEnd`, not before it. Both
+   from `performance.getEntriesByType('resource')`.
+
+   **The audio half is not in resource timing and never was.** Media element
+   fetches do not appear there, so the old form of this step — no `.mp3` in
+   `getEntriesByType('resource')` before the first tap — returned zero
+   whether the guard worked or not. Read the server's access log instead:
+
+   ```
+   GET /js/main.js            <- page load
+   ...
+   GET /assets/audio/kick.mp3 <- all seven, in one block, only after a tap
+   ```
+
+   Seven `.mp3` lines, none of them above `main.js`. If any appears before
+   the first tap, `preload` in `js/audio.js` has stopped being `'none'`.
 9. **The card fits** — force `#viewport` to 320 x 568, open the card, and no
    descendant of `.card` extends past `.sheet`. At 390 the card is 365px and
    the numeral 76px, unchanged from the design.
@@ -391,3 +502,26 @@ Serve locally with `python -m http.server 8000`, then:
     the painted posts and the keeper's boots sit on the painted goal line. If
     they drift, the three plate numbers in `css/game.css` have stopped
     agreeing with the measurement of `pitch-spot.webp`.
+13. **The card forgets the last visitor** — open it, set the bonus to
+    anything but the first option, type a number, close with **Escape**, then
+    score again. The bonus is back on the first option and the field is
+    empty. `restore()` used to miss the select.
+14. **The null seams are inert, not styled** — with `HOME_URL`, `LOGIN_URL`
+    and `SUBMIT` still null: `document.querySelector('.card .foot a').focus()`
+    leaves `document.activeElement` elsewhere, and "Log in" carries no
+    underline. Ignore the `tabIndex` property — it reads 0 on an anchor with
+    no href and means nothing. Fill a seam and both come back.
+15. **A hostile submit hook costs a delivery, not the card** — set `SUBMIT` to
+    a function that throws, score, submit. The done screen still appears with
+    the right number, and the console carries
+    `[fs-penalty] the submit hook failed`.
+16. **The bonus answer is not a translated label** — switch to Russian, open
+    the card, and every `#fs-bonus` option still reads `casino` / `sport` /
+    `none` in `value` while its text is Cyrillic.
+17. **The headline survives forced colours** — in Windows High Contrast, or
+    Chrome DevTools *Rendering → Emulate CSS media forced-colors: active*,
+    `.tagline__text` is readable and the six panels still show their borders.
+18. **Regenerating the audio changes nothing** — `python tools/sfx.py` twice
+    over leaves `assets/audio/confetti.mp3` and `slump.mp3` byte-identical.
+    A diff means the recipe in `tools/sfx.py` changed, which is the only way
+    it should ever change.

@@ -72,10 +72,13 @@
 .lang { border-color: #30d158; color: #fff; }
 .lang__caret { width: 14px; height: 14px; }
 
-/* Press feedback. They are buttons; they were behaving like labels. */
+/* Press feedback. They are buttons; they were behaving like labels. The logo
+   is qualified on [href] because it only becomes one when HOME_URL is filled
+   in js/main.js -- a mark that shrinks under the thumb and then does nothing
+   reads as a broken control rather than a logo. */
 .mute:active,
 .lang:active,
-.hdr__logo:active { scale: .95; }
+.hdr__logo[href]:active { scale: .95; }
 
 /* == language menu ============================================ */
 
@@ -683,6 +686,23 @@
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 2px 10px rgba(63,214,43,.30));
+}
+
+/* The gradient above is painted through the glyphs, so the text colour has to
+   be transparent for any of it to show. In forced-colors the background is
+   dropped -- the whole point of the mode is that the user's own colours win --
+   and a transparent colour with nothing behind it is an invisible headline.
+   Hand the glyphs back a real colour, and take the scrim and the glow with it:
+   both are decoration this mode has already discarded. */
+@media (forced-colors: active) {
+  .tagline__text {
+    background: none;
+    -webkit-background-clip: border-box;
+    background-clip: border-box;
+    color: CanvasText;
+    filter: none;
+  }
+  .tagline::before { display: none; }
 }
 
 /* ══ the effects canvas ═══════════════════════════════════════

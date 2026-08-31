@@ -72,9 +72,11 @@
      and a handful used directly (--green-300/500, --purple-200, --ink-600…950).
      They are kept deliberately, as the reference a new component picks from,
      not because they are all live. Roughly 1.4 kB uncompressed, which is
-     nothing beside the page's images; the cost of losing them is a fourth
-     green invented by hand. Three already exist — see --accent here,
-     --cta in css/form.css and --promo, which are not each other. */
+     nothing beside the page's images; the cost of losing them is a green
+     invented by hand rather than picked from here. That had already happened
+     twice: css/form.css carried --cta #30d158 and --promo #3dd629 alongside
+     this file's --accent #3fd62b, three greens that were not each other. All
+     three are --accent now, and the card reaches for it by name. */
 
   /* ── Primary: Green Goblin ────────────────────────────────── */
   --green-50:  #ecfce9;

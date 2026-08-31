@@ -39,11 +39,15 @@
 
   /* ══ one loop for everything ══════════════════════════════════
 
-     There were three near-identical rAF wrappers in the project (game.js,
-     form.js, i18n.js), each guarding against a hidden tab, where rAF never
-     fires and would otherwise wedge a promise chain forever. That guard
-     lives here once, and every actor shares a single loop, a single clear
-     and a single frame of layout work. */
+     There were four near-identical rAF wrappers in the project (game.js,
+     form.js, i18n.js and this one), each guarding against a hidden tab, where
+     rAF never fires and would otherwise wedge a promise chain forever. That
+     guard lives here once now, exported as FSFx.next, and every actor shares
+     a single loop, a single clear and a single frame of layout work.
+
+     Keep it that way. The copies did not merely repeat each other -- two of
+     them ended up describing a fallback in game.js that had already been
+     deleted, and a comment nobody can act on is worse than no comment. */
 
   var actors = [];
   var spinning = false;
@@ -85,9 +89,11 @@
   }
 
   /* Run cb on the next frame -- or on a timer if the tab is hidden, where
-     requestAnimationFrame never fires at all. game.js used to keep its own
-     copy of this; form.js and i18n.js still do, and are left alone here
-     because nothing else in this change touches them. */
+     requestAnimationFrame never fires at all. Exported as FSFx.next: game.js,
+     form.js (the card and the error line) and i18n.js (the language menu) all
+     come through here, and none of them keeps a copy any more. Each of those
+     mounts an element at opacity 0 and adds a class one frame later, so a
+     frame that never arrives leaves something invisible and open. */
   function next(cb) {
     schedule(function () { cb(); });
   }

@@ -138,11 +138,21 @@
           // the net bulge completely, and the bulge is over inside 520ms --
           // fired together, the net was never seen at all. The gap also reads
           // as a crowd taking a moment to realise.
-          later(function () { FSFx.burst(centre(panel)); }, 180);
+          later(function () {
+            FSFx.burst(centre(panel));
+            // With the burst, not with the goal: the 180ms gap is the whole
+            // point of the delay, and a pop on the goal would close it.
+            FSAudio.play('confetti', 0.55);
+          }, 180);
           // He is still in the air when the ball crosses the line -- the dive
           // runs to DIVE_DELAY + T.duration = 650ms and the ball arrives at
           // 640. Let him land before he reacts to it.
-          later(function () { anim.react('beaten', { hold: 1200 }); }, 320);
+          later(function () {
+            anim.react('beaten', { hold: 1200 });
+            // Quiet: this one plays under net, cheer and the confetti, and is
+            // meant to be felt rather than picked out. See tools/sfx.py.
+            FSAudio.play('slump', 0.5);
+          }, 320);
           say(FSI18n.t('msg.goal'), 1400);
           return wait(1500);
         })

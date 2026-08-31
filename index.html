@@ -27,7 +27,9 @@
 
     <!-- ── header ─────────────────────────────────────────────── -->
     <header class="hdr">
-      <a class="hdr__logo" href="#" aria-label="FanSport">
+      <!-- No href on purpose: HOME_URL in js/main.js puts one here when the
+           client supplies it. aria-label is inert until then and live after. -->
+      <a class="hdr__logo" aria-label="FanSport">
         <img src="assets/img/logo-fansport.svg" alt="FanSport" width="120" height="30">
       </a>
       <div class="hdr__right">
@@ -175,10 +177,14 @@
               <label class="label" for="fs-bonus" data-i18n="field.bonus">Select bonus</label>
               <div class="select">
                 <img class="select__icon" src="assets/img/icons/gift.svg" alt="" width="20" height="20">
+                <!-- The values are what js/form.js reads, and they are stable
+                     across locales. Without them a select falls back to its
+                     option's text, so the answer would have been "Casino
+                     bonus" in English and "Казино бонус" in Russian. -->
                 <select id="fs-bonus">
-                  <option data-i18n="bonus.casino">Casino bonus</option>
-                  <option data-i18n="bonus.sport">Sport bonus</option>
-                  <option data-i18n="bonus.none">No bonus</option>
+                  <option value="casino" data-i18n="bonus.casino">Casino bonus</option>
+                  <option value="sport" data-i18n="bonus.sport">Sport bonus</option>
+                  <option value="none" data-i18n="bonus.none">No bonus</option>
                 </select>
                 <img class="select__caret" src="assets/img/icons/chevron.svg" alt="" width="12" height="8">
               </div>
@@ -187,7 +193,8 @@
 
           <div class="actions">
             <button class="cta" type="submit" data-i18n="cta.continue">CONTINUE</button>
-            <p class="foot"><span data-i18n="foot.have">Already have an account?</span> <a href="#" data-i18n="foot.login">Log in</a></p>
+            <!-- No href on purpose: LOGIN_URL in js/main.js. See the logo. -->
+            <p class="foot"><span data-i18n="foot.have">Already have an account?</span> <a data-i18n="foot.login">Log in</a></p>
           </div>
         </div>
 

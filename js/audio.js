@@ -4,12 +4,16 @@
   'use strict';
 
   var KEY = 'fs-muted';
+  /* confetti and slump are rendered by tools/sfx.py rather than sourced; the
+     other five are clips. Every entry here is played from somewhere. */
   var FILES = {
-    kick:   'assets/audio/kick.mp3',
-    save:   'assets/audio/save.mp3',
-    net:    'assets/audio/net.mp3',
-    cheer:  'assets/audio/cheer.mp3',
-    whistle:'assets/audio/whistle.mp3'
+    kick:    'assets/audio/kick.mp3',
+    save:    'assets/audio/save.mp3',
+    net:     'assets/audio/net.mp3',
+    cheer:   'assets/audio/cheer.mp3',
+    whistle: 'assets/audio/whistle.mp3',
+    confetti:'assets/audio/confetti.mp3',
+    slump:   'assets/audio/slump.mp3'
   };
 
   var pool = {};
@@ -27,7 +31,7 @@
   function load() {
     Object.keys(FILES).forEach(function (name) {
       var a = new Audio();
-      /* 'none' until the first gesture. The five files are 130 kB that cannot
+      /* 'none' until the first gesture. The seven files are 159 kB that cannot
          make a sound before someone taps, so none of it belongs in the page
          load; unlock() raises this to 'auto' and primes, which is what
          actually starts the fetch. */

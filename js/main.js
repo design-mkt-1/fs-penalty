@@ -3,6 +3,24 @@
 (function () {
   'use strict';
 
+  /* The two outbound links the client has not supplied yet. Neither anchor
+     carries an href in the markup, so until a seam is filled it is not a link
+     at all: no tab stop, nothing announced as a link, and no click. That is
+     the point. Both used to be href="#", which offers a link that goes
+     nowhere and drops a bare fragment into the address bar of a page that is
+     not allowed to scroll.
+
+     Filling either is a one-line change and needs nothing else. The third URL,
+     behind GO TO WEBSITE, is DESTINATION at the top of js/form.js. */
+  var HOME_URL  = null;   // e.g. 'https://fansport.example/'
+  var LOGIN_URL = null;   // e.g. 'https://fansport.example/login'
+
+  function link(sel, url) {
+    if (!url) return;
+    var a = document.querySelector(sel);
+    if (a) a.setAttribute('href', url);
+  }
+
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
@@ -26,6 +44,10 @@
     };
     window.addEventListener('pointerdown', unlock, { once: false });
     window.addEventListener('keydown', unlock, { once: false });
+
+    // The card is in the DOM from the start, only hidden, so both resolve here.
+    link('.hdr__logo', HOME_URL);
+    link('.card .foot a', LOGIN_URL);
 
     FSI18n.init();
     FSForm.init();

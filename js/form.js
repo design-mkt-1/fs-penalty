@@ -12,11 +12,21 @@
      Pointing it at the real destination is a one-line change. */
   var DESTINATION = null;   // e.g. 'https://fansport.example/signup?utm=penalty'
 
+  /* The card has never sent anything anywhere, and this is where it would.
+     SUBMIT receives what the visitor actually chose -- the contact, which tab
+     it came from, and the bonus -- and null leaves the behaviour exactly as it
+     was. IT replaces the body; nothing else in this file has to change.
+
+     It is called after the done screen is already up, and inside a try, so a
+     hook that throws cannot strand the visitor on a form that has stopped
+     responding. Same reason game.js catches around the shot sequence. */
+  var SUBMIT = null;   // e.g. function (data) { navigator.sendBeacon('/signup', JSON.stringify(data)); }
+
   var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
                   'select:not([disabled]),textarea:not([disabled]),' +
                   '[tabindex]:not([tabindex="-1"])';
 
-  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput;
+  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput, bonusSelect;
   var mode = 'phone';
   var lastFocus = null;
   var closing = false;
@@ -75,7 +85,7 @@
     if (!e) return;
     clearTimeout(errTimers[e.id]);
     e.hidden = false;
-    nextFrame(function () { e.classList.add('is-shown'); });
+    FSFx.next(function () { e.classList.add('is-shown'); });
   }
 
   function validate() {
@@ -123,6 +133,21 @@
     card.setAttribute('aria-labelledby', 'done-title');
     card.scrollTop = 0;
     FSAudio.play('whistle', 0.5);
+
+    /* Last, and guarded: the visitor is already on the done screen, so a hook
+       that throws costs a delivery rather than the card. */
+    if (SUBMIT) {
+      try {
+        SUBMIT({
+          via: mode,
+          contact: mode === 'phone' ? '+998' + value : value,
+          bonus: bonusSelect.value,
+          lang: document.documentElement.lang || null
+        });
+      } catch (err) {
+        console.error('[fs-penalty] the submit hook failed', err);
+      }
+    }
   }
 
   /* ── focus containment ────────────────────────────────────── */
@@ -166,13 +191,6 @@
 
   /* ── open / close ─────────────────────────────────────────── */
 
-  /* Matches the fallback in game.js: a hidden tab never fires rAF, and the
-     card must not be left mounted at opacity 0. */
-  function nextFrame(cb) {
-    if (document.hidden) setTimeout(cb, 16);
-    else requestAnimationFrame(cb);
-  }
-
   /* Tab is trapped, but a screen reader's virtual cursor is not: without this
      it browses the header, the six targets and the ball behind a dialog that
      claims aria-modal. inert takes them out of the accessibility tree and out
@@ -196,7 +214,7 @@
     background(true);
     document.addEventListener('keydown', onKeydown, true);
 
-    nextFrame(function () {
+    FSFx.next(function () {
       sheet.classList.add('is-open');
       // The card itself, not the first field: on a phone, focusing a text
       // input pops the soft keyboard the instant the goal is scored.
@@ -243,6 +261,10 @@
     card.setAttribute('aria-labelledby', 'promo-title');
     phoneInput.value = '';
     emailInput.value = '';
+    /* The select was the one control this function forgot, so a second visit
+       opened on whatever bonus the first one picked. selectedIndex, not
+       value: it restores the first option whatever the values become. */
+    bonusSelect.selectedIndex = 0;
     setTab('phone');
     card.scrollTop = 0;
   }
@@ -262,6 +284,7 @@
     tabs     = Array.prototype.slice.call(card.querySelectorAll('.tab'));
     phoneInput = card.querySelector('#fs-phone');
     emailInput = card.querySelector('#fs-email');
+    bonusSelect = card.querySelector('#fs-bonus');
 
     tabs.forEach(function (t) {
       t.addEventListener('click', function () { setTab(t.dataset.tab); });

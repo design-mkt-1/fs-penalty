@@ -228,7 +228,7 @@
     clearTimeout(hideTimer);
     menu.hidden = false;
     btn.setAttribute('aria-expanded', 'true');
-    nextFrame(function () { menu.classList.add('is-open'); });
+    FSFx.next(function () { menu.classList.add('is-open'); });
 
     document.addEventListener('keydown', onKeydown, true);
     document.addEventListener('pointerdown', onPointerDown, true);
@@ -252,13 +252,6 @@
 
     clearTimeout(hideTimer);
     hideTimer = setTimeout(function () { menu.hidden = true; }, EXIT_MS);
-  }
-
-  /* Matches the fallback in game.js and form.js: rAF never fires in a hidden
-     tab, and the menu must not be left mounted at opacity 0. */
-  function nextFrame(cb) {
-    if (document.hidden) setTimeout(cb, 16);
-    else requestAnimationFrame(cb);
   }
 
   function move(step) {
